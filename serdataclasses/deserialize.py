@@ -34,12 +34,16 @@ def deserialize(obj: JsonType, constructor: Type[T]) -> T:
     ):
         return obj
     if _is_union(obj, constructor):
+        _union_errors = []
         for argument in constructor.__args__:
             try:
                 return deserialize(obj, argument)
-            except DeserializeError:
-                continue
-        raise DeserializeError(f"Failed to deserialize {constructor}")
+            except DeserializeError as error:
+                _union_errors.append(str(error))
+        raise DeserializeError(
+            f"Failed to deserialize '{obj}' with '{constructor}' "
+            f"for all provided types: {' && '.join(_union_errors)}"
+        )
 
     raise DeserializeError(f"Cannot deserialize {obj} with {constructor}")
 
@@ -84,7 +88,7 @@ def _is_primitive(obj: JsonType, constructor: Type) -> bool:
     """Check if a type is a primitive type"""
     if constructor in (str, int, float, bool):
         if not isinstance(obj, constructor):
-            raise DeserializeError(f"Expected {constructor}")
+            raise DeserializeError(f"Expected {constructor}, got {type(obj)}")
         return True
     return False
 
