@@ -52,9 +52,7 @@ def _is_dataclass(obj: JsonType, constructor: Type) -> bool:
     """Check if the type is a dataclasses"""
     if is_dataclass(constructor):
         if not isinstance(obj, dict):
-            raise DeserializeError(
-                f"{obj} expected to be dict, is actually {type(obj)}"
-            )
+            raise DeserializeError(f"Expected Dict, received {type(obj)}")
         return True
     return False
 
@@ -63,7 +61,7 @@ def _is_list(obj: JsonType, constructor: Type) -> bool:
     """Check if the type is a list"""
     if constructor == list or getattr(constructor, "__origin__", None) == list:
         if not isinstance(obj, list):
-            raise DeserializeError("Expected a list")
+            raise DeserializeError(f"Expected list, received {type(obj)}")
         return True
     return False
 
@@ -72,7 +70,7 @@ def _is_nonetype(obj: JsonType, constructor: Type) -> bool:
     """Check if type is NoneType, or None"""
     if constructor is None or constructor == type(None):
         if not obj is None:
-            raise DeserializeError("Expected None")
+            raise DeserializeError(f"Expected NoneType, received {type(obj)}")
         return True
     return False
 
