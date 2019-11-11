@@ -20,6 +20,7 @@ class MyDataClass:
     l: List["Another"]
     q: Optional[str]
     p: List[Union[Another, str]]
+    b: List
 
 
 value = {
@@ -28,6 +29,7 @@ value = {
     "z": 12.41,
     "l": [{"y": [1, 2, 3]}, {"y": [4, 5, 6]}],
     "p": ["hello", "world", {"y": [1, 2, 3]}, {"y": [4, 5, 6]}],
+    "b": [tuple(), tuple(), tuple()]
 }
 
 deserialized = deserialize(value, MyDataClass)
@@ -41,6 +43,7 @@ expected_deserialized = MyDataClass(
     l=[Another(y=[1, 2, 3]), Another(y=[4, 5, 6])],
     q=None,
     p=["hello", "world", Another(y=[1, 2, 3]), Another(y=[4, 5, 6])],
+    b=[tuple(), tuple(), tuple()],
 )
 
 expected_serialized = {

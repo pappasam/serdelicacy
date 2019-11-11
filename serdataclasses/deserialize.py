@@ -1,8 +1,9 @@
 """Deserialize a Python List or Dictionary into a dataclass"""
 
+import typing
 from dataclasses import is_dataclass, InitVar
-from typing import get_type_hints
-from typing import Type, Any, Union, List
+from typing import get_type_hints, get_args, get_origin
+from typing import Type, Any, Union, List, TypeVar
 
 from .typedefs import JsonValuesType, T
 
@@ -23,11 +24,19 @@ class DeserializeError(Exception):
     """
 
     def __init__(
-        self, type_expected: Type, value_received: object, depth: List[Type]
+        self,
+        type_expected: Type,
+        value_received: object,
+        depth: List[Type],
+        message_prefix: str = "",
+        message_postfix: str = "",
     ):
         message = (
-            f"Expected '{type_expected}' but received '{type(value_received)}'"
-            f" for value '{value_received}'."
+            message_prefix
+            + f"Expected '{type_expected}' "
+            + f"but received '{type(value_received)}'"
+            + f" for value '{value_received}'."
+            + message_postfix
         )
         depth_str = " >>> ".join([str(item) for item in depth])
         super().__init__(f"{message}\nError location: {depth_str}")
@@ -64,11 +73,7 @@ def _deserialize(
         )
     if _is_list(obj, constructor, new_depth):
         return [
-            _deserialize(
-                value,
-                getattr(constructor, "__args__", (object,))[0],
-                new_depth,
-            )
+            _deserialize(value, get_args(constructor)[0], new_depth)
             for value in obj
         ]
     if isinstance(constructor, InitVar):
@@ -81,14 +86,26 @@ def _deserialize(
         return obj
     if _is_union(obj, constructor, new_depth):
         _union_errors = []
-        for argument in constructor.__args__:
+        for argument in get_args(constructor):
             try:
                 return _deserialize(obj, argument, new_depth)
             except DeserializeError as error:
                 _union_errors.append(str(error))
         raise DeserializeError(constructor, obj, new_depth)
+    if _is_typevar(obj, constructor, new_depth):
+        return _deserialize(
+            obj,
+            (
+                Union[constructor.__constraints__]
+                if constructor.__constraints__
+                else object
+            ),
+            new_depth,
+        )
 
-    raise DeserializeError(constructor, obj, new_depth)
+    raise DeserializeError(
+        constructor, obj, new_depth, message_prefix="Unsupported type. "
+    )
 
 
 def _is_dataclass(
@@ -106,7 +123,7 @@ def _is_list(
     obj: JsonValuesType, constructor: Type, depth: List[Type]
 ) -> bool:
     """Check if the type is a list"""
-    if constructor == list or getattr(constructor, "__origin__", None) == list:
+    if constructor == list or get_origin(constructor) == list:
         if not isinstance(obj, list):
             raise DeserializeError(list, obj, depth)
         return True
@@ -153,4 +170,11 @@ def _is_union(
 
     Note: Optional[str] is an alias for Union[str, NoneType]
     """
-    return getattr(constructor, "__origin__", None) == Union
+    return get_origin(constructor) == Union
+
+
+def _is_typevar(
+    obj: JsonValuesType, constructor: Type, depth: List[Type]
+) -> bool:
+    """Check if a type is a TypeVar"""
+    return isinstance(constructor, TypeVar)
