@@ -17,7 +17,7 @@ class MyDataClass:
     x: int
     y: str
     z: float
-    l: List[Another]
+    l: List["Another"]
     q: Optional[str]
     p: List[Union[Another, str]]
 
@@ -27,7 +27,7 @@ value = {
     "y": "hello",
     "z": 12.41,
     "l": [{"y": [1, 2, 3]}, {"y": [4, 5, 6]}],
-    "p": ["hello", "world", {"y": [1, 2, "3"]}, {"y": [4, 5, 6]}],
+    "p": ["hello", "world", {"y": [1, 2, 3]}, {"y": [4, 5, 6]}],
 }
 
 deserialized = deserialize(value, MyDataClass)

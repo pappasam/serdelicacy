@@ -1,7 +1,7 @@
 """Deserialize a Python List or Dictionary into a dataclass"""
 
 from dataclasses import is_dataclass, InitVar
-from inspect import signature
+from typing import get_type_hints
 from typing import Type, Any, Union
 
 from .typedefs import JsonType, T
@@ -12,12 +12,17 @@ class DeserializeError(Exception):
 
 
 def deserialize(obj: JsonType, constructor: Type[T]) -> T:
-    """Deserialize the type"""
+    """Deserialize the type
+
+    NOTE: we use typing.get_type_hints because it correctly handles
+    ForwardRefs, translating string references into their correct type in
+    strange and mysterious ways.
+    """
     if _is_dataclass(obj, constructor):
         return constructor(
             **{
-                p.name: deserialize(obj.get(p.name), p.annotation)
-                for p in signature(constructor).parameters.values()
+                name: deserialize(obj.get(name), _type)
+                for name, _type in get_type_hints(constructor).items()
             }
         )
     if _is_list(obj, constructor):
