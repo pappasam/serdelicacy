@@ -4,7 +4,9 @@ line-length = 79
 [tool.poetry]
 name = "serdataclasses"
 version = "0.1.0"
-description = ""
+description = "Serialize/deserialize Python objects from/to dataclasses"
+license = "MIT"
+readme = "README.md"
 authors = ["Sam Roeca <samuel.roeca@gmail.com>"]
 
 [tool.poetry.dependencies]
