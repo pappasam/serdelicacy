@@ -31,6 +31,28 @@ version = "0.4.1"
 
 [[package]]
 category = "dev"
+description = "A library for property based testing"
+name = "hypothesis"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "4.44.1"
+
+[package.dependencies]
+attrs = ">=19.2.0"
+
+[package.extras]
+all = ["django (>=1.11)", "dpcontracts (>=0.4)", "lark-parser (>=0.6.5)", "numpy (>=1.9.0)", "pandas (>=0.19)", "pytest (>=4.3)", "python-dateutil (>=1.4)", "pytz", "pytz (>=2014.1)"]
+dateutil = ["python-dateutil (>=1.4)"]
+django = ["pytz", "django (>=1.11)"]
+dpcontracts = ["dpcontracts (>=0.4)"]
+lark = ["lark-parser (>=0.6.5)"]
+numpy = ["numpy (>=1.9.0)"]
+pandas = ["pandas (>=0.19)"]
+pytest = ["pytest (>=4.3)"]
+pytz = ["pytz (>=2014.1)"]
+
+[[package]]
+category = "dev"
 description = "More routines for operating on iterables, beyond itertools"
 name = "more-itertools"
 optional = false
@@ -154,7 +176,7 @@ python-versions = "*"
 version = "0.1.7"
 
 [metadata]
-content-hash = "c0a11b8459f8463653c065c5257ee1b3647b364c6a97d3b405096c07f5fb7a8a"
+content-hash = "851388d416c329d62a1e36cc44e8cd11e60c94719f419f084d64111e5784753b"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -169,6 +191,10 @@ attrs = [
 colorama = [
     {file = "colorama-0.4.1-py2.py3-none-any.whl", hash = "sha256:f8ac84de7840f5b9c4e3347b3c1eaa50f7e49c2b07596221daec5edaabbd7c48"},
     {file = "colorama-0.4.1.tar.gz", hash = "sha256:05eed71e2e327246ad6b38c540c4a3117230b19679b875190486ddd2d721422d"},
+]
+hypothesis = [
+    {file = "hypothesis-4.44.1-py3-none-any.whl", hash = "sha256:2dfa49672947796cf6555fe00658c2f3590018706f6bc90a3b79c157be7acb20"},
+    {file = "hypothesis-4.44.1.tar.gz", hash = "sha256:5caf0d4b52cf797cfcb6bcf7fc633dd97b23beb9c07a3c90fffe444e4ebb3de3"},
 ]
 more-itertools = [
     {file = "more-itertools-7.2.0.tar.gz", hash = "sha256:409cd48d4db7052af495b09dec721011634af3753ae1ef92d2b32f73a745f832"},
