@@ -34,10 +34,10 @@ BigData = st.fixed_dictionaries(
         "my_str": st.text(),
         "my_float": st.floats(),
         "my_list_small": st.lists(SmallData),
-        "my_optional_str": st.one_of(st.none(), st.text()),
         "my_list_of_small_or_str": st.lists(st.one_of(SmallData, st.text())),
         "my_list": st.lists(st.text()),
-    }
+    },
+    optional={"my_optional_str": st.one_of(st.text(), st.none())},
 )
 
 
@@ -50,5 +50,9 @@ def test_serde_big_data(big_data: dict):
         Small(**value) if isinstance(value, dict) else value
         for value in big_data["my_list_of_small_or_str"]
     ]
+    print("my_optional_str" in big_data, deserialized.my_optional_str)
     serialized = serialize(deserialized)
-    assert big_data == serialized
+    assert serialized == {
+        **{"my_optional_str": None,},
+        **big_data,
+    }
