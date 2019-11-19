@@ -5,7 +5,7 @@ from dataclasses import is_dataclass, InitVar
 from typing import get_type_hints, get_args, get_origin
 from typing import Type, Any, Union, List, TypeVar
 
-from .typedefs import JsonValuesType, T
+from .typedefs import JsonValuesType, NamedTupleType, T
 
 
 class DeserializeError(Exception):
@@ -64,7 +64,9 @@ def _deserialize(
     strange and mysterious ways.
     """
     new_depth = depth + [constructor]
-    if _is_dataclass(obj, constructor, new_depth):
+    if _is_dataclass(obj, constructor, new_depth) or _is_namedtuple(
+        obj, constructor, new_depth
+    ):
         return constructor(
             **{
                 name: _deserialize(obj.get(name), _type, new_depth)
@@ -178,3 +180,10 @@ def _is_typevar(
 ) -> bool:
     """Check if a type is a TypeVar"""
     return isinstance(constructor, TypeVar)
+
+
+def _is_namedtuple(
+    obj: JsonValuesType, constructor: Type, depth: List[Type]
+) -> bool:
+    """Check if a type is a NamedTuple"""
+    return isinstance(constructor, NamedTupleType)
