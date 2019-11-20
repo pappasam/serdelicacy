@@ -76,10 +76,21 @@ def _deserialize(
     if _is_list(constructor):
         if not isinstance(obj, list):
             raise DeserializeError(list, obj, depth)
-        return [
-            _deserialize(value, get_args(constructor)[0], new_depth)
-            for value in obj
-        ]
+        _nc = get_args(constructor)
+        _args = _nc[0] if _nc else Any
+        return [_deserialize(value, _args, new_depth) for value in obj]
+    if _is_dict(constructor):
+        # TODO test this functionality
+        if not isinstance(obj, dict):
+            raise DeserializeError(dict, obj, depth)
+        _nc = get_args(constructor)
+        _tpkey, _tpvalue = _nc if _nc else (Any, Any)
+        return {
+            _deserialize(key, _tpkey, new_depth): _deserialize(
+                value, _tpvalue, new_depth
+            )
+            for key, value in obj.items()
+        }
     if _is_initvar(constructor):
         return _deserialize(obj, constructor.type, new_depth)
     if _is_nonetype(constructor):
@@ -129,6 +140,11 @@ def _is_initvar(constructor: Type) -> bool:
 def _is_list(constructor: Type) -> bool:
     """Check if the type is a list"""
     return constructor == list or get_origin(constructor) == list
+
+
+def _is_dict(constructor: Type) -> bool:
+    """Check if the type is a dict"""
+    return constructor == dict or get_origin(constructor) == dict
 
 
 def _is_nonetype(constructor: Type) -> bool:
