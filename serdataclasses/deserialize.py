@@ -208,8 +208,12 @@ class Deserialize(Generic[T]):
             ).run()
         return NoResult
 
-    def _final_error(self) -> None:
-        """Finally, if nothing is caught, raise an exception"""
+    def _final_error(self) -> Possible[T]:
+        """Finally, if nothing is caught, raise an exception
+
+        Implemented like this so it can be the last argument. All it actually
+        does is raise a DeserializeError.
+        """
         raise DeserializeError(
             self.constructor,
             self.obj,

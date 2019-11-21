@@ -11,6 +11,8 @@ def serialize(obj: object) -> JsonType:
         return {key: serialize(value) for key, value in asdict(obj).items()}
     if isinstance(obj, NamedTupleType):
         return {key: serialize(value) for key, value in obj._asdict().items()}
+    if isinstance(obj, dict):
+        return {serialize(key): serialize(value) for key, value in obj.items()}
     if isinstance(obj, list):
         return [serialize(item) for item in obj]
     return obj
