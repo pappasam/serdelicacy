@@ -10,7 +10,25 @@ from typing import (
 )
 
 
+class NoResult:
+    """This value represents no result. Necessary because we care about None"""
+
+    def __call__(self):
+        """Simply returns reference to itself, making a defacto singleton"""
+        return self
+
+
+_V = TypeVar("_V")
+
+Possible = Union[_V, NoResult]  # pylint: disable=invalid-name
+
 T = TypeVar("T")  # pylint: disable=invalid-name
+
+
+def is_no_result(value: object) -> bool:
+    """Checks if value is NoResult"""
+    return value is NoResult
+
 
 JsonValuesType = Union[
     str,

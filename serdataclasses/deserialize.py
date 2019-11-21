@@ -1,11 +1,19 @@
-"""Deserialize a Python List or Dictionary into a dataclass"""
+"""Deserialize a Python List or Dictionary into a dataclass, list, or other
+supported structure"""
 
-import typing
-from dataclasses import is_dataclass, InitVar
+import itertools
+from dataclasses import dataclass, field, is_dataclass, InitVar
 from typing import get_type_hints, get_args, get_origin
-from typing import Type, Any, Union, List, TypeVar
+from typing import Callable, Generic, Type, Any, Union, List, TypeVar
 
-from .typedefs import JsonValuesType, NamedTupleType, T
+from .typedefs import (
+    is_no_result,
+    JsonValuesType,
+    NamedTupleType,
+    NoResult,
+    Possible,
+    T,
+)
 
 
 class DeserializeError(Exception):
@@ -48,12 +56,11 @@ def deserialize(obj: JsonValuesType, constructor: Type[T]) -> T:
     :param obj: the 'serialized' object that we want to deserialize
     :param constructor: the type into which we want serialize 'obj'
     """
-    return _deserialize(obj, constructor, [])
+    return Deserialize(obj, constructor, []).run()
 
 
-def _deserialize(
-    obj: JsonValuesType, constructor: Type[T], depth: List[Type]
-) -> T:
+@dataclass
+class Deserialize(Generic[T]):
     """Deserialize the type
 
     :param depth: keeps track of recursive position. Supremely helpful for
@@ -63,68 +70,152 @@ def _deserialize(
     ForwardRefs, translating string references into their correct type in
     strange and mysterious ways.
     """
-    new_depth = depth + [constructor]
-    if _is_dataclass(constructor) or _is_namedtuple(constructor):
-        if not isinstance(obj, dict):
-            raise DeserializeError(dict, obj, depth)
-        return constructor(
-            **{
-                name: _deserialize(obj.get(name), _type, new_depth)
-                for name, _type in get_type_hints(constructor).items()
-            }
-        )
-    if _is_list(constructor):
-        if not isinstance(obj, list):
-            raise DeserializeError(list, obj, depth)
-        _nc = get_args(constructor)
-        _args = _nc[0] if _nc else Any
-        return [_deserialize(value, _args, new_depth) for value in obj]
-    if _is_dict(constructor):
-        # TODO test this functionality
-        if not isinstance(obj, dict):
-            raise DeserializeError(dict, obj, depth)
-        _nc = get_args(constructor)
-        _tpkey, _tpvalue = _nc if _nc else (Any, Any)
-        return {
-            _deserialize(key, _tpkey, new_depth): _deserialize(
-                value, _tpvalue, new_depth
-            )
-            for key, value in obj.items()
-        }
-    if _is_initvar(constructor):
-        return _deserialize(obj, constructor.type, new_depth)
-    if _is_nonetype(constructor):
-        if not obj is None:
-            raise DeserializeError(type(None), obj, depth)
-        return obj
-    if _is_primitive(constructor):
-        if not isinstance(obj, constructor):
-            raise DeserializeError(constructor, obj, depth)
-        return obj
-    if _is_any(constructor):
-        return obj
-    if _is_union(constructor):
-        _union_errors = []
-        for argument in get_args(constructor):
-            try:
-                return _deserialize(obj, argument, new_depth)
-            except DeserializeError as error:
-                _union_errors.append(str(error))
-        raise DeserializeError(constructor, obj, new_depth)
-    if _is_typevar(constructor):
-        return _deserialize(
-            obj,
-            (
-                Union[constructor.__constraints__]
-                if constructor.__constraints__
-                else object
-            ),
-            new_depth,
+
+    obj: JsonValuesType
+    constructor: Type[T]
+    depth: List[Type]
+    new_depth: List[Type] = field(init=False)
+    check_functions: Callable[[], Possible[T]] = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Initialize the uninitialized"""
+        self.new_depth = self.depth + [self.constructor]
+        self.check_functions = (
+            self._check_mapping_class,
+            self._check_list,
+            self._check_dict,
+            self._check_initvar,
+            self._check_none,
+            self._check_primitive,
+            self._check_any,
+            self._check_union,
+            self._check_typevar,
+            self._final_error,
         )
 
-    raise DeserializeError(
-        constructor, obj, new_depth, message_prefix="Unsupported type. "
-    )
+    def run(self) -> T:
+        """Run each function in the iterator"""
+        return next(
+            itertools.dropwhile(
+                is_no_result, (function() for function in self.check_functions)
+            )
+        )
+
+    def _check_mapping_class(self) -> Possible[T]:
+        """Checks whether a result is a mapping type"""
+        if _is_dataclass(self.constructor) or _is_namedtuple(self.constructor):
+            if not isinstance(self.obj, dict):
+                raise DeserializeError(dict, self.obj, self.new_depth)
+            return self.constructor(
+                **{
+                    name: Deserialize(
+                        self.obj.get(name), _type, self.new_depth
+                    ).run()
+                    for name, _type in get_type_hints(self.constructor).items()
+                }
+            )
+        return NoResult
+
+    def _check_list(self) -> Possible[T]:
+        """Checks whether a result is a list type"""
+        if _is_list(self.constructor):
+            if not isinstance(self.obj, list):
+                raise DeserializeError(list, self.obj, self.new_depth)
+            _nc = get_args(self.constructor)
+            _args = _nc[0] if _nc else Any
+            return [
+                Deserialize(value, _args, self.new_depth).run()
+                for value in self.obj
+            ]
+        return NoResult
+
+    def _check_dict(self) -> Possible[T]:
+        """Checks whether a result is a dict type"""
+        if _is_dict(self.constructor):
+            # TODO test this functionality
+            if not isinstance(self.obj, dict):
+                raise DeserializeError(dict, self.obj, self.new_depth)
+            _nc = get_args(self.constructor)
+            _tpkey, _tpvalue = _nc if _nc else (Any, Any)
+            # fmt: off
+            return {
+                Deserialize(key, _tpkey, self.new_depth).run(): Deserialize(
+                    value,
+                    _tpvalue,
+                    self.new_depth
+                ).run()
+                for key, value in self.obj.items()
+            }
+            # fmt: on
+        return NoResult
+
+    def _check_initvar(self) -> Possible[T]:
+        """Checks if a result is an InitVar"""
+        if _is_initvar(self.constructor):
+            return Deserialize(
+                self.obj, self.constructor.type, self.new_depth
+            ).run()
+        return NoResult
+
+    def _check_none(self) -> Possible[T]:
+        """Checks if a result is None"""
+        if _is_nonetype(self.constructor):
+            if not self.obj is None:
+                raise DeserializeError(type(None), self.obj, self.new_depth)
+            return self.obj
+        return NoResult
+
+    def _check_primitive(self) -> Possible[T]:
+        """Check if result is a primitive"""
+        if _is_primitive(self.constructor):
+            if not isinstance(self.obj, self.constructor):
+                raise DeserializeError(
+                    self.constructor, self.obj, self.new_depth
+                )
+            return self.obj
+        return NoResult
+
+    def _check_any(self) -> Possible[T]:
+        """Check if result is Any"""
+        if _is_any(self.constructor):
+            return self.obj
+        return NoResult
+
+    def _check_union(self) -> Possible[T]:
+        """Check if result is a Union"""
+        if _is_union(self.constructor):
+            for argument in get_args(self.constructor):
+                try:
+                    return Deserialize(
+                        self.obj, argument, self.new_depth
+                    ).run()
+                except DeserializeError:
+                    pass
+            raise DeserializeError(self.constructor, self.obj, self.new_depth)
+        return NoResult
+
+    def _check_typevar(self) -> Possible[T]:
+        """Checks whether it's a typevar"""
+        if _is_typevar(self.constructor):
+            return Deserialize(
+                self.obj,
+                (
+                    Union[self.constructor.__constraints__]
+                    if self.constructor.__constraints__
+                    else object
+                ),
+                self.new_depth,
+            ).run()
+        return NoResult
+
+    def _final_error(self) -> None:
+        """Finally, if nothing is caught, raise an exception"""
+        raise DeserializeError(
+            self.constructor,
+            self.obj,
+            self.new_depth,
+            message_prefix="Unsupported type. ",
+        )
 
 
 def _is_dataclass(constructor: Type) -> bool:
