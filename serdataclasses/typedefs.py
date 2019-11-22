@@ -15,18 +15,19 @@ A JSON type that would be nice if recursive types were supported:
     JsonType = Union[Dict[str, JsonValuesType], List[JsonValuesType]]
 """
 
-from typing import Protocol, Type, TypeVar, Union, runtime_checkable
+from typing import Protocol, Type, TypeVar, Union, final, runtime_checkable
 
 # pylint: disable=too-few-public-methods
 # pylint: disable=missing-function-docstring
 
 
+@final
 class NoResult:
     """This value represents no result. Necessary because we care about None"""
 
-    def __call__(self):
+    def __new__(cls) -> Type["NoResult"]:  # type: ignore
         """Simply returns reference to itself, making a defacto singleton"""
-        return self
+        return cls
 
 
 _V = TypeVar("_V")
