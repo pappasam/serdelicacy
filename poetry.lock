@@ -22,6 +22,14 @@ tests = ["coverage", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.i
 
 [[package]]
 category = "dev"
+description = "Composable command line interface toolkit"
+name = "click"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "7.0"
+
+[[package]]
+category = "dev"
 description = "Cross-platform colored terminal text."
 marker = "sys_platform == \"win32\""
 name = "colorama"
@@ -153,6 +161,26 @@ version = "1.13.0"
 
 [[package]]
 category = "dev"
+description = "Toml sorting library"
+name = "toml-sort"
+optional = false
+python-versions = ">=3.6,<4.0"
+version = "0.16.1"
+
+[package.dependencies]
+click = ">=7.0,<8.0"
+tomlkit = ">=0.5.5"
+
+[[package]]
+category = "dev"
+description = "Style preserving TOML library"
+name = "tomlkit"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "0.5.8"
+
+[[package]]
+category = "dev"
 description = "a fork of Python 2 and 3 ast modules with type comment support"
 name = "typed-ast"
 optional = false
@@ -176,7 +204,7 @@ python-versions = "*"
 version = "0.1.7"
 
 [metadata]
-content-hash = "851388d416c329d62a1e36cc44e8cd11e60c94719f419f084d64111e5784753b"
+content-hash = "a6543927264ad6d41001cde7711d564b37bc6801882357c5ebc7ceb424a92701"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -187,6 +215,10 @@ atomicwrites = [
 attrs = [
     {file = "attrs-19.3.0-py2.py3-none-any.whl", hash = "sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c"},
     {file = "attrs-19.3.0.tar.gz", hash = "sha256:f7b7ce16570fe9965acd6d30101a28f62fb4a7f9e926b3bbc9b61f8b04247e72"},
+]
+click = [
+    {file = "Click-7.0-py2.py3-none-any.whl", hash = "sha256:2335065e6395b9e67ca716de5f7526736bfa6ceead690adf616d925bdc622b13"},
+    {file = "Click-7.0.tar.gz", hash = "sha256:5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"},
 ]
 colorama = [
     {file = "colorama-0.4.1-py2.py3-none-any.whl", hash = "sha256:f8ac84de7840f5b9c4e3347b3c1eaa50f7e49c2b07596221daec5edaabbd7c48"},
@@ -243,6 +275,14 @@ pytest = [
 six = [
     {file = "six-1.13.0-py2.py3-none-any.whl", hash = "sha256:1f1b7d42e254082a9db6279deae68afb421ceba6158efa6131de7b3003ee93fd"},
     {file = "six-1.13.0.tar.gz", hash = "sha256:30f610279e8b2578cab6db20741130331735c781b56053c59c4076da27f06b66"},
+]
+toml-sort = [
+    {file = "toml-sort-0.16.1.tar.gz", hash = "sha256:d454d502749db0d7269dbc3f001c852dac521635a98b93200a9a29640bf0c924"},
+    {file = "toml_sort-0.16.1-py3-none-any.whl", hash = "sha256:997794d81ea208d88756be384fae9ca20721a4dfd74570f933591881e04e20e3"},
+]
+tomlkit = [
+    {file = "tomlkit-0.5.8-py2.py3-none-any.whl", hash = "sha256:96e6369288571799a3052c1ef93b9de440e1ab751aa045f435b55e9d3bcd0690"},
+    {file = "tomlkit-0.5.8.tar.gz", hash = "sha256:32c10cc16ded7e4101c79f269910658cc2a0be5913f1252121c3cd603051c269"},
 ]
 typed-ast = [
     {file = "typed_ast-1.4.0-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:262c247a82d005e43b5b7f69aff746370538e176131c32dda9cb0f324d27141e"},

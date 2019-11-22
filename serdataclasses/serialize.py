@@ -1,6 +1,6 @@
 """Serialize typed structures into less-typed Python objects"""
 
-from dataclasses import is_dataclass, asdict
+from dataclasses import asdict, is_dataclass
 
 from .typedefs import JsonType, NamedTupleType
 

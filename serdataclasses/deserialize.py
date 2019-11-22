@@ -2,17 +2,27 @@
 supported structure"""
 
 import itertools
-from dataclasses import dataclass, field, is_dataclass, InitVar
-from typing import get_type_hints, get_args, get_origin
-from typing import Callable, Generic, Type, Any, Union, List, TypeVar
+from dataclasses import InitVar, dataclass, field, is_dataclass
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    List,
+    Type,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from .typedefs import (
-    is_no_result,
     JsonValuesType,
     NamedTupleType,
     NoResult,
     Possible,
     T,
+    is_no_result,
 )
 
 

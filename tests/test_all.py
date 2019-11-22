@@ -1,12 +1,13 @@
 """Test the deserialize class"""
 
 from dataclasses import dataclass
-from typing import Dict, List, Union, Optional, NamedTuple
+from typing import Dict, List, NamedTuple, Optional, Union
+
+from hypothesis import assume, given, settings
+from hypothesis import strategies as st
 
 from serdataclasses.deserialize import deserialize
 from serdataclasses.serialize import serialize
-
-from hypothesis import given, assume, settings, strategies as st
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 

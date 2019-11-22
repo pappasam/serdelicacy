@@ -1,13 +1,6 @@
 """Type definitions"""
 
-from typing import (
-    Dict,
-    List,
-    Protocol,
-    TypeVar,
-    Union,
-    runtime_checkable,
-)
+from typing import Dict, List, Protocol, TypeVar, Union, runtime_checkable
 
 
 class NoResult:
