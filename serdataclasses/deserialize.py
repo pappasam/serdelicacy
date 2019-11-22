@@ -77,13 +77,13 @@ class Deserialize(Generic[T]):
 
     obj: object
     constructor: Type[T]
-    depth: List[Type]
+    depth: InitVar[List[Type]]
     new_depth: List[Type] = field(init=False)
     check_functions: Iterable[Callable[[], Possible[T]]] = field(init=False)
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, depth) -> None:
         """Initialize the uninitialized"""
-        self.new_depth = self.depth + [self.constructor]
+        self.new_depth = depth + [self.constructor]
         self.check_functions = (
             self._check_dataclass,
             self._check_namedtuple,
@@ -95,16 +95,24 @@ class Deserialize(Generic[T]):
             self._check_any,
             self._check_union,
             self._check_typevar,
-            self._final_error,
         )
 
     def run(self) -> T:
         """Run each function in the iterator"""
-        return next(
-            itertools.dropwhile(
-                is_no_result, (function() for function in self.check_functions)
+        try:
+            return next(
+                itertools.dropwhile(
+                    is_no_result,
+                    (function() for function in self.check_functions),
+                )
+            )  # type: ignore
+        except StopIteration:
+            raise DeserializeError(
+                self.constructor,
+                self.obj,
+                self.new_depth,
+                message_prefix="Unsupported type. ",
             )
-        )  # type: ignore
 
     def _check_dataclass(self) -> Possible[T]:
         """Checks whether a result is a dataclass"""
@@ -228,16 +236,3 @@ class Deserialize(Generic[T]):
                 self.new_depth,
             ).run()
         return NoResult
-
-    def _final_error(self) -> Possible[T]:
-        """Finally, if nothing is caught, raise an exception
-
-        Implemented like this so it can be the last argument. All it actually
-        does is raise a DeserializeError.
-        """
-        raise DeserializeError(
-            self.constructor,
-            self.obj,
-            self.new_depth,
-            message_prefix="Unsupported type. ",
-        )
