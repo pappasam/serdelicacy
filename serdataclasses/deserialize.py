@@ -132,7 +132,6 @@ class Deserialize(Generic[T]):
     def _check_dict(self) -> Possible[T]:
         """Checks whether a result is a dict type"""
         if _is_dict(self.constructor):
-            # TODO test this functionality
             if not isinstance(self.obj, dict):
                 raise DeserializeError(dict, self.obj, self.new_depth)
             _nc = get_args(self.constructor)
@@ -142,7 +141,7 @@ class Deserialize(Generic[T]):
                 Deserialize(key, _tpkey, self.new_depth).run(): Deserialize(
                     value,
                     _tpvalue,
-                    self.new_depth
+                    self.new_depth,
                 ).run()
                 for key, value in self.obj.items()
             }

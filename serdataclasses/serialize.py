@@ -1,4 +1,4 @@
-"""Serialize dataclasses, or lists of dataclasses, into JSON"""
+"""Serialize typed structures into less-typed Python objects"""
 
 from dataclasses import is_dataclass, asdict
 
@@ -6,7 +6,15 @@ from .typedefs import JsonType, NamedTupleType
 
 
 def serialize(obj: object) -> JsonType:
-    """Serialize the item"""
+    """Serialize the object into a less-typed form
+
+    Serialize from -> to:
+        * Dataclasses -> Dicts
+        * NamedTuples -> Dicts
+        * Lists -> Lists
+        * Dicts -> Dicts
+        * Other -> self
+    """
     if is_dataclass(obj):
         return {key: serialize(value) for key, value in asdict(obj).items()}
     if isinstance(obj, NamedTupleType):
