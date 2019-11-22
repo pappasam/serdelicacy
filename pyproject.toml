@@ -13,8 +13,8 @@ include_trailing_comma = true
 
 [tool.poetry]
 name = "serdataclasses"
-version = "0.1.0"
-description = "Serialize/deserialize Python objects from/to dataclasses"
+version = "0.2.0"
+description = "Serialize/deserialize Python objects from/to typed structures."
 license = "MIT"
 readme = "README.md"
 authors = ["Sam Roeca <samuel.roeca@gmail.com>"]
