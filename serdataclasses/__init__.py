@@ -8,5 +8,6 @@ This library has two goals:
     types (eg, the reverse).
 """
 
-from .deserialize import DeserializeError, load
+from .deserialize import load
+from .errors import DeserializeError
 from .serialize import dump
