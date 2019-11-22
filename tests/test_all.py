@@ -3,13 +3,13 @@
 from dataclasses import dataclass
 from typing import Dict, List, NamedTuple, Optional, Union
 
-from hypothesis import assume, given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 
-from serdataclasses.deserialize import deserialize
-from serdataclasses.serialize import serialize
+from serdataclasses import dump, load
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
+# pylint: disable=too-many-instance-attributes
 
 
 class SmallNamedTuple(NamedTuple):
@@ -53,7 +53,7 @@ BIG_DATA = st.fixed_dictionaries(
 
 @given(BIG_DATA)
 def test_serde_big_data(big_data: dict):
-    deserialized = deserialize(big_data, Big)
+    deserialized = load(big_data, Big)
     assert deserialized.my_int == big_data["my_int"]
     assert deserialized.my_list == big_data["my_list"]
     assert deserialized.my_list_small == [
@@ -67,7 +67,7 @@ def test_serde_big_data(big_data: dict):
         key: SmallDataClass(**value)
         for key, value in big_data["my_dict"].items()
     }
-    serialized = serialize(deserialized)
+    serialized = dump(deserialized)
     assert serialized == {
         **{"my_optional_str": None},
         **big_data,

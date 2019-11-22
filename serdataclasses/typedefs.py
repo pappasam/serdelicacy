@@ -15,7 +15,7 @@ A JSON type that would be nice if recursive types were supported:
     JsonType = Union[Dict[str, JsonValuesType], List[JsonValuesType]]
 """
 
-from typing import Protocol, TypeVar, Union, runtime_checkable
+from typing import Protocol, Type, TypeVar, Union, runtime_checkable
 
 # pylint: disable=too-few-public-methods
 # pylint: disable=missing-function-docstring
@@ -31,7 +31,7 @@ class NoResult:
 
 _V = TypeVar("_V")
 
-Possible = Union[_V, NoResult]  # pylint: disable=invalid-name
+Possible = Union[_V, Type[NoResult]]  # pylint: disable=invalid-name
 
 T = TypeVar("T")  # pylint: disable=invalid-name
 
