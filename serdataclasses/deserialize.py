@@ -17,50 +17,29 @@ from typing import (
     get_type_hints,
 )
 
+from .errors import DeserializeError
 from .typedefs import NamedTupleType, NoResult, Possible, T, is_no_result
 
 
-def load(obj: object, constructor: Type[T]) -> T:
+def load(obj: object, constructor: Type[T], typesafe_constructor=True) -> T:
     """Deserialize an object into its constructor
 
     :param obj: the 'serialized' object that we want to deserialize
     :param constructor: the type into which we want serialize 'obj'
+    :param typesafe_constructor: makes sure that the provided top-level
+        constructor is not one of several "unsafe" types
+
+    :returns: an instance of your constructor, recursively filled
+
+    :raises TypeError: if typesafe is True and a non-typesafe constructor is
+        provided
+    :raises errors.DeserializeError: triggered by any deserialization error
     """
-    return Deserialize(obj, constructor, []).run()
-
-
-class DeserializeError(Exception):
-    """Exception for deserialization failure
-
-    Deserializing arbitrarily-nested JSON often results in opaque
-    deserialization errors. This Exception class provides a clear, consistent
-    debugging message. Example:
-
-        serdataclasses.deserialize.DeserializeError: Expected '<class 'int'>'
-        but received '<class 'str'>' for value '2'.
-
-        Error location: <class 'test_all.MyDataClass'> >>>
-        typing.List[test_all.Another] >>> <class 'test_all.Another'> >>>
-        typing.List[int] >>> <class 'int'>
-    """
-
-    def __init__(
-        self,
-        type_expected: Type,
-        value_received: object,
-        depth: List[Type],
-        message_prefix: str = "",
-        message_postfix: str = "",
+    if typesafe_constructor and any(
+        check(constructor) for check in _TYPE_UNSAFE_CHECKS
     ):
-        message = (
-            message_prefix
-            + f"Expected '{type_expected}' "
-            + f"but received '{type(value_received)}'"
-            + f" for value '{value_received}'."
-            + message_postfix
-        )
-        depth_str = " >>> ".join([str(item) for item in depth])
-        super().__init__(f"{message}\nError location: {depth_str}")
+        raise TypeError(f"Cannot begin deserialization with '{constructor}'")
+    return Deserialize(obj, constructor, []).run()
 
 
 @dataclass
@@ -178,7 +157,7 @@ class Deserialize(Generic[T]):
 
     def _check_initvar_instance(self) -> Possible[T]:
         """Checks if a result is an InitVar"""
-        if isinstance(self.constructor, InitVar):
+        if _is_initvar_instance(self.constructor):
             return Deserialize(
                 self.obj,
                 self.constructor.type,  # type: ignore
@@ -206,13 +185,13 @@ class Deserialize(Generic[T]):
 
     def _check_any(self) -> Possible[T]:
         """Check if result is Any"""
-        if self.constructor in (Any, object, InitVar):
+        if _is_any(self.constructor):
             return self.obj  # type: ignore
         return NoResult
 
     def _check_union(self) -> Possible[T]:
         """Check if result is a Union"""
-        if get_origin(self.constructor) == Union:
+        if _is_union(self.constructor):
             for argument in get_args(self.constructor):
                 try:
                     return Deserialize(
@@ -225,7 +204,7 @@ class Deserialize(Generic[T]):
 
     def _check_typevar(self) -> Possible[T]:
         """Checks whether it's a typevar"""
-        if isinstance(self.constructor, TypeVar):  # type: ignore
+        if _is_typevar(self.constructor):  # type: ignore
             return Deserialize(
                 self.obj,
                 (
@@ -236,3 +215,31 @@ class Deserialize(Generic[T]):
                 self.new_depth,
             ).run()
         return NoResult
+
+
+def _is_initvar_instance(typeval: Type) -> bool:
+    """Check if a type is an InitVar with a type inside"""
+    return isinstance(typeval, InitVar)
+
+
+def _is_any(typeval: Type) -> bool:
+    """Check if a type is the equivalent to Any"""
+    return typeval in (Any, object, InitVar)
+
+
+def _is_union(typeval: Type) -> bool:
+    """Check if a type is a Union"""
+    return get_origin(typeval) == Union
+
+
+def _is_typevar(typeval: Type) -> bool:
+    """Check if a type is a TypeVar"""
+    return isinstance(typeval, TypeVar)  # type: ignore
+
+
+_TYPE_UNSAFE_CHECKS = (
+    _is_any,
+    _is_initvar_instance,
+    _is_typevar,
+    _is_union,
+)
