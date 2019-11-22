@@ -3,6 +3,7 @@ supported structure"""
 
 import itertools
 from dataclasses import InitVar, dataclass, field, is_dataclass
+from typing import _TypedDictMeta  # type: ignore
 from typing import get_args  # type: ignore
 from typing import get_origin  # type: ignore
 from typing import (
@@ -68,6 +69,7 @@ class Deserialize(Generic[T]):
             self._check_namedtuple,
             self._check_list,
             self._check_dict,
+            self._check_typed_dict,
             self._check_initvar_instance,
             self._check_none,
             self._check_primitive,
@@ -153,6 +155,21 @@ class Deserialize(Generic[T]):
                 for key, value in self.obj.items()
             }  # type: ignore
             # fmt: on
+        return NoResult
+
+    def _check_typed_dict(self) -> Possible[T]:
+        """Checks whether a result is a TypedDict"""
+        # pylint: disable=unidiomatic-typecheck
+        if type(self.constructor) == _TypedDictMeta:
+            # pylint: enable=unidiomatic-typecheck
+            if not isinstance(self.obj, dict):
+                raise DeserializeError(dict, self.obj, self.new_depth)
+            return {
+                name: Deserialize(
+                    self.obj.get(name), _type, self.new_depth
+                ).run()
+                for name, _type in get_type_hints(self.constructor).items()
+            }  # type: ignore
         return NoResult
 
     def _check_initvar_instance(self) -> Possible[T]:

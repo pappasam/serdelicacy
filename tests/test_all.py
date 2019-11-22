@@ -1,7 +1,7 @@
 """Test the deserialize class"""
 
 from dataclasses import dataclass
-from typing import Dict, List, NamedTuple, Optional, Union
+from typing import Dict, List, NamedTuple, Optional, TypedDict, Union
 
 from hypothesis import given
 from hypothesis import strategies as st
@@ -10,6 +10,10 @@ from serdataclasses import dump, load
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 # pylint: disable=too-many-instance-attributes
+
+
+class SmallTypedDict(TypedDict):
+    my_value: int
 
 
 class SmallNamedTuple(NamedTuple):
@@ -31,8 +35,10 @@ class Big:
     my_list_of_small_or_str: List[Union[SmallDataClass, str]]
     my_list: List
     my_dict: Dict[int, SmallDataClass]
+    my_typed_dict: SmallTypedDict
 
 
+SMALL_DATA_TD = st.fixed_dictionaries({"my_value": st.integers()})
 SMALL_DATA_DC = st.fixed_dictionaries({"my_list_int": st.lists(st.integers())})
 SMALL_DATA_NT = st.fixed_dictionaries({"my_list_int": st.lists(st.floats())})
 BIG_DATA = st.fixed_dictionaries(
@@ -46,6 +52,7 @@ BIG_DATA = st.fixed_dictionaries(
         ),
         "my_list": st.lists(st.text()),
         "my_dict": st.dictionaries(st.integers(), SMALL_DATA_DC),
+        "my_typed_dict": SMALL_DATA_TD,
     },
     optional={"my_optional_str": st.one_of(st.text(), st.none())},
 )
@@ -67,6 +74,7 @@ def test_serde_big_data(big_data: dict):
         key: SmallDataClass(**value)
         for key, value in big_data["my_dict"].items()
     }
+    assert deserialized.my_typed_dict == big_data["my_typed_dict"]
     serialized = dump(deserialized)
     assert serialized == {
         **{"my_optional_str": None},
