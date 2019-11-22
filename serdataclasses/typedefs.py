@@ -1,6 +1,24 @@
-"""Type definitions"""
+"""Type definitions
 
-from typing import Dict, List, Protocol, TypeVar, Union, runtime_checkable
+A JSON type that would be nice if recursive types were supported:
+
+    JsonValuesType = Union[
+        str,
+        int,
+        float,
+        bool,
+        None,
+        Dict[str, "JsonValuesType"],
+        List["JsonValuesType"],
+    ]
+
+    JsonType = Union[Dict[str, JsonValuesType], List[JsonValuesType]]
+"""
+
+from typing import Protocol, TypeVar, Union, runtime_checkable
+
+# pylint: disable=too-few-public-methods
+# pylint: disable=missing-function-docstring
 
 
 class NoResult:
@@ -21,19 +39,6 @@ T = TypeVar("T")  # pylint: disable=invalid-name
 def is_no_result(value: object) -> bool:
     """Checks if value is NoResult"""
     return value is NoResult
-
-
-JsonValuesType = Union[
-    str,
-    int,
-    float,
-    bool,
-    None,
-    Dict[str, "JsonValuesType"],
-    List["JsonValuesType"],
-]
-
-JsonType = Union[Dict[str, JsonValuesType], List[JsonValuesType]]
 
 
 @runtime_checkable

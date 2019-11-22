@@ -2,10 +2,10 @@
 
 from dataclasses import asdict, is_dataclass
 
-from .typedefs import JsonType, NamedTupleType
+from .typedefs import NamedTupleType
 
 
-def serialize(obj: object) -> JsonType:
+def serialize(obj: object) -> object:
     """Serialize the object into a less-typed form
 
     Serialize from -> to:

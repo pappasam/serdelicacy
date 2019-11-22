@@ -3,27 +3,21 @@ supported structure"""
 
 import itertools
 from dataclasses import InitVar, dataclass, field, is_dataclass
+from typing import get_args  # type: ignore
+from typing import get_origin  # type: ignore
 from typing import (
     Any,
     Callable,
     Generic,
+    Iterable,
     List,
     Type,
     TypeVar,
     Union,
-    get_args,
-    get_origin,
     get_type_hints,
 )
 
-from .typedefs import (
-    JsonValuesType,
-    NamedTupleType,
-    NoResult,
-    Possible,
-    T,
-    is_no_result,
-)
+from .typedefs import NamedTupleType, NoResult, Possible, T, is_no_result
 
 
 class DeserializeError(Exception):
@@ -60,7 +54,7 @@ class DeserializeError(Exception):
         super().__init__(f"{message}\nError location: {depth_str}")
 
 
-def deserialize(obj: JsonValuesType, constructor: Type[T]) -> T:
+def deserialize(obj: object, constructor: Type[T]) -> T:
     """Deserialize an object into its constructor
 
     :param obj: the 'serialized' object that we want to deserialize
@@ -81,11 +75,11 @@ class Deserialize(Generic[T]):
     strange and mysterious ways.
     """
 
-    obj: JsonValuesType
+    obj: object
     constructor: Type[T]
     depth: List[Type]
     new_depth: List[Type] = field(init=False)
-    check_functions: Callable[[], Possible[T]] = field(init=False)
+    check_functions: Iterable[Callable[[], Possible[T]]] = field(init=False)
 
     def __post_init__(self) -> None:
         """Initialize the uninitialized"""
@@ -109,7 +103,7 @@ class Deserialize(Generic[T]):
             itertools.dropwhile(
                 is_no_result, (function() for function in self.check_functions)
             )
-        )
+        )  # type: ignore
 
     def _check_mapping_class(self) -> Possible[T]:
         """Checks whether a result is a mapping type"""
@@ -123,8 +117,8 @@ class Deserialize(Generic[T]):
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                 }
-            )
-        return NoResult
+            )  # type: ignore
+        return NoResult()
 
     def _check_list(self) -> Possible[T]:
         """Checks whether a result is a list type"""
@@ -136,8 +130,8 @@ class Deserialize(Generic[T]):
             return [
                 Deserialize(value, _args, self.new_depth).run()
                 for value in self.obj
-            ]
-        return NoResult
+            ]  # type: ignore
+        return NoResult()
 
     def _check_dict(self) -> Possible[T]:
         """Checks whether a result is a dict type"""
@@ -154,25 +148,27 @@ class Deserialize(Generic[T]):
                     self.new_depth,
                 ).run()
                 for key, value in self.obj.items()
-            }
+            }  # type: ignore
             # fmt: on
-        return NoResult
+        return NoResult()
 
     def _check_initvar(self) -> Possible[T]:
         """Checks if a result is an InitVar"""
         if _is_initvar(self.constructor):
             return Deserialize(
-                self.obj, self.constructor.type, self.new_depth
+                self.obj,
+                self.constructor.type,  # type: ignore
+                self.new_depth,
             ).run()
-        return NoResult
+        return NoResult()
 
     def _check_none(self) -> Possible[T]:
         """Checks if a result is None"""
         if _is_nonetype(self.constructor):
             if not self.obj is None:
                 raise DeserializeError(type(None), self.obj, self.new_depth)
-            return self.obj
-        return NoResult
+            return self.obj  # type: ignore
+        return NoResult()
 
     def _check_primitive(self) -> Possible[T]:
         """Check if result is a primitive"""
@@ -182,13 +178,13 @@ class Deserialize(Generic[T]):
                     self.constructor, self.obj, self.new_depth
                 )
             return self.obj
-        return NoResult
+        return NoResult()
 
     def _check_any(self) -> Possible[T]:
         """Check if result is Any"""
         if _is_any(self.constructor):
-            return self.obj
-        return NoResult
+            return self.obj  # type: ignore
+        return NoResult()
 
     def _check_union(self) -> Possible[T]:
         """Check if result is a Union"""
@@ -201,7 +197,7 @@ class Deserialize(Generic[T]):
                 except DeserializeError:
                     pass
             raise DeserializeError(self.constructor, self.obj, self.new_depth)
-        return NoResult
+        return NoResult()
 
     def _check_typevar(self) -> Possible[T]:
         """Checks whether it's a typevar"""
@@ -209,13 +205,13 @@ class Deserialize(Generic[T]):
             return Deserialize(
                 self.obj,
                 (
-                    Union[self.constructor.__constraints__]
-                    if self.constructor.__constraints__
+                    Union[self.constructor.__constraints__]  # type: ignore
+                    if self.constructor.__constraints__  # type: ignore
                     else object
                 ),
                 self.new_depth,
             ).run()
-        return NoResult
+        return NoResult()
 
     def _final_error(self) -> Possible[T]:
         """Finally, if nothing is caught, raise an exception
@@ -276,7 +272,7 @@ def _is_union(constructor: Type) -> bool:
 
 def _is_typevar(constructor: Type) -> bool:
     """Check if a type is a TypeVar"""
-    return isinstance(constructor, TypeVar)
+    return isinstance(constructor, TypeVar)  # type: ignore
 
 
 def _is_namedtuple(constructor: Type) -> bool:
