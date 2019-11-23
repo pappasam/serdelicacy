@@ -18,6 +18,17 @@ description = "Serialize/deserialize Python objects from/to typed structures."
 license = "MIT"
 readme = "README.md"
 authors = ["Sam Roeca <samuel.roeca@gmail.com>"]
+homepage = "https://github.com/pappasam/serdataclasses"
+repository = "https://github.com/pappasam/serdataclasses"
+keywords = ["typing", "json", "serde", "serialize", "deserialize"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.8",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Utilities",
+  "Typing :: Typed",
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
