@@ -1,5 +1,5 @@
-"""Deserialize a Python List or Dictionary into a dataclass, list, or other
-supported structure"""
+"""Deserialize a Python Sequence or Mapping into a dataclass, NamedTuple, list,
+or other supported structures recursively"""
 
 import itertools
 from dataclasses import InitVar, dataclass, field, is_dataclass
@@ -12,6 +12,9 @@ from typing import (
     Generic,
     Iterable,
     List,
+    Mapping,
+    Sequence,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -59,21 +62,26 @@ class Deserialize(Generic[T]):
     constructor: Type[T]
     depth: InitVar[List[Type]]
     new_depth: List[Type] = field(init=False)
+    constructor_args: Tuple[Type, ...] = field(init=False)
+    constructor_origin: Type = field(init=False)
     check_functions: Iterable[Callable[[], Possible[T]]] = field(init=False)
 
     def __post_init__(self, depth) -> None:
         """Initialize the uninitialized"""
         self.new_depth = depth + [self.constructor]
+        self.constructor_args = get_args(self.constructor)
+        origin = get_origin(self.constructor)
+        self.constructor_origin = origin if origin else self.constructor
         self.check_functions = (
+            self._check_any,
+            self._check_primitive,
+            self._check_none,
             self._check_dataclass,
             self._check_namedtuple,
-            self._check_list,
-            self._check_dict,
             self._check_typed_dict,
+            self._check_sequence,
+            self._check_mapping,
             self._check_initvar_instance,
-            self._check_none,
-            self._check_primitive,
-            self._check_any,
             self._check_union,
             self._check_typevar,
         )
@@ -98,8 +106,8 @@ class Deserialize(Generic[T]):
     def _check_dataclass(self) -> Possible[T]:
         """Checks whether a result is a dataclass"""
         if is_dataclass(self.constructor):
-            if not isinstance(self.obj, dict):
-                raise DeserializeError(dict, self.obj, self.new_depth)
+            if not isinstance(self.obj, Mapping):
+                raise DeserializeError(Mapping, self.obj, self.new_depth)
             return self.constructor(
                 **{
                     name: Deserialize(
@@ -113,8 +121,8 @@ class Deserialize(Generic[T]):
     def _check_namedtuple(self) -> Possible[T]:
         """Checks whether a result is a namedtuple"""
         if isinstance(self.constructor, NamedTupleType):
-            if not isinstance(self.obj, dict):
-                raise DeserializeError(dict, self.obj, self.new_depth)
+            if not isinstance(self.obj, Mapping):
+                raise DeserializeError(Mapping, self.obj, self.new_depth)
             return self.constructor(
                 **{
                     name: Deserialize(
@@ -125,35 +133,53 @@ class Deserialize(Generic[T]):
             )  # type: ignore
         return NoResult
 
-    def _check_list(self) -> Possible[T]:
-        """Checks whether a result is a list type"""
-        if self.constructor == list or get_origin(self.constructor) == list:
-            if not isinstance(self.obj, list):
-                raise DeserializeError(list, self.obj, self.new_depth)
-            _nc = get_args(self.constructor)
-            _args = _nc[0] if _nc else Any
-            return [
-                Deserialize(value, _args, self.new_depth).run()
+    def _check_sequence(self) -> Possible[T]:
+        """Checks whether a result is a Sequence type
+
+        Catches generic sequences. All sequence types that are treated
+        differently (such as strings) should be placed before this function.
+        """
+        if isinstance(self.constructor_origin, type) and issubclass(
+            self.constructor_origin, Sequence
+        ):
+            if not isinstance(self.obj, Sequence):
+                raise DeserializeError(Sequence, self.obj, self.new_depth)
+            if self.constructor_args:
+                _arg = self.constructor_args[0]
+            else:
+                _arg = Any  # type: ignore
+            return self.constructor_origin(
+                Deserialize(value, _arg, self.new_depth).run()  # type: ignore
                 for value in self.obj
-            ]  # type: ignore
+            )  # type: ignore
         return NoResult
 
-    def _check_dict(self) -> Possible[T]:
-        """Checks whether a result is a dict type"""
-        if self.constructor == dict or get_origin(self.constructor) == dict:
-            if not isinstance(self.obj, dict):
-                raise DeserializeError(dict, self.obj, self.new_depth)
-            _nc = get_args(self.constructor)
-            _tpkey, _tpvalue = _nc if _nc else (Any, Any)
+    def _check_mapping(self) -> Possible[T]:
+        """Checks whether a result is a Mapping type
+
+        Catches generic mappings. All mapping types that are treated
+        differently should be placed before this function.
+        """
+        if isinstance(self.constructor_origin, type) and issubclass(
+            self.constructor_origin, Mapping
+        ):
+            if not isinstance(self.obj, Mapping):
+                raise DeserializeError(Mapping, self.obj, self.new_depth)
+            if self.constructor_args:
+                _tpkey = self.constructor_args[0]
+                _tpvalue = self.constructor_args[1]
+            else:
+                _tpkey = Any  # type: ignore
+                _tpvalue = Any  # type: ignore
             # fmt: off
-            return {
+            return self.constructor_origin({
                 Deserialize(key, _tpkey, self.new_depth).run(): Deserialize(
                     value,
                     _tpvalue,
                     self.new_depth,
                 ).run()
                 for key, value in self.obj.items()
-            }  # type: ignore
+            })  # type: ignore
             # fmt: on
         return NoResult
 
@@ -246,7 +272,7 @@ def _is_any(typeval: Type) -> bool:
 
 def _is_union(typeval: Type) -> bool:
     """Check if a type is a Union"""
-    return get_origin(typeval) == Union
+    return get_origin(typeval) is Union
 
 
 def _is_typevar(typeval: Type) -> bool:
