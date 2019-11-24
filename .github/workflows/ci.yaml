@@ -20,11 +20,15 @@ jobs:
           architecture: x64
       - name: Testing
         run: |
+          # Python
           python -m pip install --upgrade pip
+          # Poetry
           curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py > get-poetry.py
           python get-poetry.py --preview
           rm get-poetry.py
           source $HOME/.poetry/env
           poetry self update --preview 1.0.0b6
-          poetry install
-          poetry run tox -e py
+          # Tox
+          ls -l
+          python -m pip install tox==3.14.1
+          python -m tox -e py
