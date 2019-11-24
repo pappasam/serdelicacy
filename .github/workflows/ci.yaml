@@ -4,12 +4,12 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-18.04
 
     strategy:
       matrix:
-        python-version: [ '3.8' ]
+        python-version: ['3.8']
+        poetry-version: ['1.0.0b7']
 
     steps:
       - uses: actions/checkout@v1
@@ -18,17 +18,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
-      - name: Testing
-        run: |
-          # Python
-          python -m pip install --upgrade pip
-          # Poetry
-          curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py > get-poetry.py
-          python get-poetry.py --preview
-          rm get-poetry.py
-          source $HOME/.poetry/env
-          poetry self update --preview 1.0.0b6
-          poetry config virtualenvs.in-project true
-          # Tox
-          python -m pip install tox==3.14.1
-          python -m tox -e py
+      - name: Poetry install
+        uses: abatilo/actions-poetry@v1.1.0
+        with:
+          python_version: ${{ matrix.python-version }}
+          poetry_version: ${{ matrix.poetry-version }}
+          args: install
+      - name: Tox tests
+        uses: abatilo/actions-poetry@v1.1.0
+        with:
+          python_version: ${{ matrix.python-version }}
+          poetry_version: ${{ matrix.poetry-version }}
+          args: run tox -e py

@@ -5,7 +5,7 @@ help:  ## Print this help menu
 
 .PHONY: setup
 setup:  ## Set up the local development environment
-	poetry install
+	poetry install -E tox
 	poetry run pre-commit install
 
 .PHONY: tox
