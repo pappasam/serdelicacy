@@ -1,7 +1,7 @@
 """Test the deserialize class"""
 
 from dataclasses import dataclass
-from typing import Dict, List, NamedTuple, Optional, TypedDict, Union
+from typing import Dict, List, NamedTuple, Optional, Tuple, TypedDict, Union
 
 from hypothesis import given
 from hypothesis import strategies as st
@@ -36,6 +36,8 @@ class Big:
     my_list: List
     my_dict: Dict[int, SmallDataClass]
     my_typed_dict: SmallTypedDict
+    my_tuple: Tuple[int, str]
+    my_tuple_long: Tuple[int, ...]
 
 
 SMALL_DATA_TD = st.fixed_dictionaries({"my_value": st.integers()})
@@ -53,6 +55,10 @@ BIG_DATA = st.fixed_dictionaries(
         "my_list": st.lists(st.text()),
         "my_dict": st.dictionaries(st.integers(), SMALL_DATA_DC),
         "my_typed_dict": SMALL_DATA_TD,
+        "my_tuple": st.tuples(st.integers(), st.text()),
+        "my_tuple_long": st.tuples(
+            st.integers(), st.integers(), st.integers()
+        ),
     },
     optional={"my_optional_str": st.one_of(st.text(), st.none())},
 )
@@ -75,8 +81,14 @@ def test_serde_big_data(big_data: dict):
         for key, value in big_data["my_dict"].items()
     }
     assert deserialized.my_typed_dict == big_data["my_typed_dict"]
+    assert deserialized.my_tuple == big_data["my_tuple"]
+    assert deserialized.my_tuple_long == big_data["my_tuple_long"]
     serialized = dump(deserialized)
     assert serialized == {
         **{"my_optional_str": None},
         **big_data,
+        **{
+            "my_tuple": list(deserialized.my_tuple),
+            "my_tuple_long": list(deserialized.my_tuple_long),
+        },
     }
