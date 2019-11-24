@@ -28,7 +28,7 @@ jobs:
           rm get-poetry.py
           source $HOME/.poetry/env
           poetry self update --preview 1.0.0b6
+          poetry config virtualenvs.in-project true
           # Tox
-          ls -l
           python -m pip install tox==3.14.1
           python -m tox -e py
