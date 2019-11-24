@@ -3,8 +3,7 @@
 [![image-version](https://img.shields.io/pypi/v/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
 [![image-license](https://img.shields.io/pypi/l/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
 [![image](https://img.shields.io/pypi/pyversions/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
-
-![](https://github.com/pappasam/serdataclasses/workflows/serdataclasses%20library/badge.svg)
+[![image-ci](https://github.com/pappasam/serdataclasses/workflows/serdataclasses%20ci/badge.svg)](https://github.com/pappasam/serdataclasses/actions?query=workflow%3A%22serdataclasses+ci%22)
 
 This library has the following goals:
 
