@@ -1,5 +1,11 @@
-"""Deserialize a Python Sequence or Mapping into a dataclass, NamedTuple, list,
-or other supported structures recursively"""
+"""Recursively deserialize a Python Sequence, Mapping, or primitive into a
+
+* dataclass
+* NamedTuple
+* list
+* tuple
+* other supported structure
+"""
 
 import itertools
 from dataclasses import InitVar, dataclass, field, is_dataclass
@@ -79,6 +85,7 @@ class Deserialize(Generic[T]):
             self._check_dataclass,
             self._check_namedtuple,
             self._check_typed_dict,
+            self._check_tuple,
             self._check_sequence,
             self._check_mapping,
             self._check_initvar_instance,
@@ -130,6 +137,38 @@ class Deserialize(Generic[T]):
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                 }
+            )  # type: ignore
+        return NoResult
+
+    def _check_tuple(self) -> Possible[T]:
+        """Checks whether a result is a Tuple type"""
+        if isinstance(self.constructor_origin, type) and issubclass(
+            self.constructor_origin, tuple
+        ):
+            if not isinstance(self.obj, Sequence):
+                raise DeserializeError(tuple, self.obj, self.new_depth)
+            if not self.constructor_args:
+                return self.constructor_origin(self.obj)  # type: ignore
+            if (
+                len(self.constructor_args) == 2
+                and self.constructor_args[1] == ...
+            ):
+                return self.constructor_origin(
+                    Deserialize(
+                        value, self.constructor_args[0], self.new_depth
+                    ).run()
+                    for value in self.obj
+                )  # type: ignore
+            if len(self.constructor_args) != len(self.obj):
+                raise DeserializeError(
+                    tuple,
+                    self.obj,
+                    self.new_depth,
+                    message_prefix="Tuple incorrect length. ",
+                )
+            return self.constructor_origin(
+                Deserialize(self.obj[i], arg, self.new_depth).run()
+                for i, arg in enumerate(self.constructor_args)
             )  # type: ignore
         return NoResult
 
