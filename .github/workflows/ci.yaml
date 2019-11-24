@@ -21,6 +21,7 @@ jobs:
       - name: Install poetry
         run: |
           curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+          source $HOME/.poetry/env
           poetry self:update --preview 1.0.0b6
       - name: Install dependencies
         run: |
