@@ -4,7 +4,7 @@
 [![image-license](https://img.shields.io/pypi/l/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
 [![image](https://img.shields.io/pypi/pyversions/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
 
-![](https://github.com/pappasam/serdataclasses/workflows/.github/workflows/ci.yml/badge.svg)
+![](https://github.com/pappasam/serdataclasses/workflows/serdataclasses%20library/badge.svg)
 
 This library has the following goals:
 
