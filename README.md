@@ -4,6 +4,8 @@
 [![image-license](https://img.shields.io/pypi/l/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
 [![image](https://img.shields.io/pypi/pyversions/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
 
+![tests](https://github.com/pappasam/serdataclasses/workflows/.github/workflows/ci.yml/badge.svg)
+
 This library has the following goals:
 
 1. "Deserialize" unstructured Python types into structured, type-hinted Python types (dataclasses.dataclass, typing.NamedTuples).
