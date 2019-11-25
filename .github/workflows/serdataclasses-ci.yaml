@@ -1,4 +1,4 @@
-name: serdataclasses library
+name: serdataclasses ci
 
 on: [push]
 
