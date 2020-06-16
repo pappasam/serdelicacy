@@ -1,4 +1,4 @@
-"""Test the deserialize class"""
+"""Test the deserialize class."""
 
 from dataclasses import dataclass
 from typing import Dict, List, NamedTuple, Optional, Tuple, TypedDict, Union
@@ -20,6 +20,11 @@ class SmallNamedTuple(NamedTuple):
     my_list_int: List[float]
 
 
+class SmallNamedTupleSingular(NamedTuple):
+    my_value: int
+    my_default: str = "hello"
+
+
 @dataclass
 class SmallDataClass:
     my_list_int: List[int]
@@ -30,6 +35,7 @@ class Big:
     my_int: int
     my_str: str
     my_float: float
+    my_named_tuple: SmallNamedTupleSingular
     my_list_small: List["SmallNamedTuple"]
     my_optional_str: Optional[str]
     my_list_of_small_or_str: List[Union[SmallDataClass, str]]
@@ -38,16 +44,20 @@ class Big:
     my_typed_dict: SmallTypedDict
     my_tuple: Tuple[int, str]
     my_tuple_long: Tuple[int, ...]
+    my_default: str = "default_value"
+    my_default_with_value: str = "default_value"
 
 
 SMALL_DATA_TD = st.fixed_dictionaries({"my_value": st.integers()})
 SMALL_DATA_DC = st.fixed_dictionaries({"my_list_int": st.lists(st.integers())})
 SMALL_DATA_NT = st.fixed_dictionaries({"my_list_int": st.lists(st.floats())})
+SMALL_DATA_NT_SING = st.fixed_dictionaries({"my_value": st.integers()})
 BIG_DATA = st.fixed_dictionaries(
     {
         "my_int": st.integers(),
         "my_str": st.text(),
         "my_float": st.floats(),
+        "my_named_tuple": SMALL_DATA_NT_SING,
         "my_list_small": st.lists(SMALL_DATA_NT),
         "my_list_of_small_or_str": st.lists(
             st.one_of(SMALL_DATA_DC, st.text())
@@ -59,6 +69,7 @@ BIG_DATA = st.fixed_dictionaries(
         "my_tuple_long": st.tuples(
             st.integers(), st.integers(), st.integers()
         ),
+        "my_default_with_value": st.text(),
     },
     optional={"my_optional_str": st.one_of(st.text(), st.none())},
 )
@@ -67,6 +78,11 @@ BIG_DATA = st.fixed_dictionaries(
 @given(BIG_DATA)
 def test_serde_big_data(big_data: dict):
     deserialized = load(big_data, Big)
+    assert deserialized.my_default == "default_value"
+    assert (
+        deserialized.my_default_with_value == big_data["my_default_with_value"]
+    )
+    assert deserialized.my_named_tuple.my_default == "hello"
     assert deserialized.my_int == big_data["my_int"]
     assert deserialized.my_list == big_data["my_list"]
     assert deserialized.my_list_small == [
@@ -85,10 +101,15 @@ def test_serde_big_data(big_data: dict):
     assert deserialized.my_tuple_long == big_data["my_tuple_long"]
     serialized = dump(deserialized)
     assert serialized == {
+        "my_default": "default_value",
         **{"my_optional_str": None},
         **big_data,
         **{
             "my_tuple": list(deserialized.my_tuple),
             "my_tuple_long": list(deserialized.my_tuple_long),
+        },
+        "my_named_tuple": {
+            "my_value": deserialized.my_named_tuple.my_value,
+            "my_default": "hello",
         },
     }
