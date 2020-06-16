@@ -11,8 +11,6 @@ import inspect
 import itertools
 from dataclasses import InitVar, dataclass, field, is_dataclass
 from typing import _TypedDictMeta  # type: ignore
-from typing import get_args  # type: ignore
-from typing import get_origin  # type: ignore
 from typing import (
     Any,
     Callable,
@@ -25,6 +23,8 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    get_args,
+    get_origin,
     get_type_hints,
 )
 
@@ -33,7 +33,10 @@ from .typedefs import NamedTupleType, NoResult, Possible, T, is_no_result
 
 
 def load(
-    obj: Any, constructor: Type[T], typesafe_constructor: bool = True
+    obj: Any,
+    constructor: Type[T],
+    typesafe_constructor: bool = True,
+    convert_primitives: bool = True,
 ) -> T:
     """Deserialize an object into its constructor.
 
@@ -41,6 +44,12 @@ def load(
     :param constructor: the type into which we want serialize 'obj'
     :param typesafe_constructor: makes sure that the provided top-level
         constructor is not one of several "unsafe" types
+    :param convert_primitives: automatically convert primitive values, if
+        encountered. Even if enabled here, this becomes automatically disabled,
+        recursively downward, if an ambiguous container type is encountered. At
+        this time, `Union` is considered ambiguous. Note: according to the type
+        system, `Optional` is considered a `Union` type, but this special case
+        does not disable automatic conversion (special-cased code handles).
 
     :returns: an instance of your constructor, recursively filled
 
@@ -52,15 +61,21 @@ def load(
         check(constructor) for check in _TYPE_UNSAFE_CHECKS
     ):
         raise TypeError(f"Cannot begin deserialization with '{constructor}'")
-    return Deserialize(obj, constructor, []).run()
+    return Deserialize(
+        obj=obj,
+        constructor=constructor,
+        depth=[],
+        convert_primitives=convert_primitives,
+    ).run()
 
 
 @dataclass
-class Deserialize(Generic[T]):
+class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     """Deserialize the type.
 
-    :param depth: keeps track of recursive position. Supremely helpful for
-    error messages, since it shows the user exactly where the parsing fails.
+    :attr depth: keeps track of recursive position. Supremely helpful for
+        error messages, since it shows the user exactly where the parsing
+        fails.
 
     NOTE: we use typing.get_type_hints because it correctly handles
     ForwardRefs, translating string references into their correct type in
@@ -70,6 +85,7 @@ class Deserialize(Generic[T]):
     obj: Any
     constructor: Type[T]
     depth: InitVar[List[Type]]
+    convert_primitives: bool
     new_depth: List[Type] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
@@ -122,7 +138,10 @@ class Deserialize(Generic[T]):
             return self.constructor(
                 **{
                     name: Deserialize(
-                        self.obj.get(name), _type, self.new_depth
+                        obj=self.obj.get(name),
+                        constructor=_type,
+                        depth=self.new_depth,
+                        convert_primitives=self.convert_primitives,
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                     if not (
@@ -143,7 +162,10 @@ class Deserialize(Generic[T]):
             return self.constructor(
                 **{
                     name: Deserialize(
-                        self.obj.get(name), _type, self.new_depth
+                        obj=self.obj.get(name),
+                        constructor=_type,
+                        depth=self.new_depth,
+                        convert_primitives=self.convert_primitives,
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                     if not (
@@ -170,7 +192,10 @@ class Deserialize(Generic[T]):
             ):
                 return self.constructor_origin(
                     Deserialize(
-                        value, self.constructor_args[0], self.new_depth
+                        obj=value,
+                        constructor=self.constructor_args[0],
+                        depth=self.new_depth,
+                        convert_primitives=self.convert_primitives,
                     ).run()
                     for value in self.obj
                 )  # type: ignore
@@ -182,7 +207,12 @@ class Deserialize(Generic[T]):
                     message_prefix="Tuple incorrect length. ",
                 )
             return self.constructor_origin(
-                Deserialize(self.obj[i], arg, self.new_depth).run()
+                Deserialize(
+                    obj=self.obj[i],
+                    constructor=arg,
+                    depth=self.new_depth,
+                    convert_primitives=self.convert_primitives,
+                ).run()
                 for i, arg in enumerate(self.constructor_args)
             )  # type: ignore
         return NoResult
@@ -204,7 +234,12 @@ class Deserialize(Generic[T]):
             else:
                 _arg = Any  # type: ignore
             return self.constructor_origin(
-                Deserialize(value, _arg, self.new_depth).run()  # type: ignore
+                Deserialize(
+                    obj=value,
+                    constructor=_arg,
+                    depth=self.new_depth,
+                    convert_primitives=self.convert_primitives,
+                ).run()
                 for value in self.obj
             )  # type: ignore
         return NoResult
@@ -226,20 +261,28 @@ class Deserialize(Generic[T]):
             else:
                 _tpkey = Any  # type: ignore
                 _tpvalue = Any  # type: ignore
-            # fmt: off
-            return self.constructor_origin({
-                Deserialize(key, _tpkey, self.new_depth).run(): Deserialize(
-                    value,
-                    _tpvalue,
-                    self.new_depth,
-                ).run()
-                for key, value in self.obj.items()
-            })  # type: ignore
-            # fmt: on
+            return self.constructor_origin(
+                {
+                    Deserialize(
+                        obj=key,
+                        constructor=_tpkey,
+                        depth=self.new_depth,
+                        convert_primitives=self.convert_primitives,
+                    )
+                    .run(): Deserialize(
+                        obj=value,
+                        constructor=_tpvalue,
+                        depth=self.new_depth,
+                        convert_primitives=self.convert_primitives,
+                    )
+                    .run()
+                    for key, value in self.obj.items()
+                }
+            )  # type: ignore
         return NoResult
 
     def _check_typed_dict(self) -> Possible[T]:
-        """Checks whether a result is a TypedDict."""
+        """Checks whether a result is a typing.TypedDict."""
         # pylint: disable=unidiomatic-typecheck
         if type(self.constructor) == _TypedDictMeta:
             # pylint: enable=unidiomatic-typecheck
@@ -247,19 +290,23 @@ class Deserialize(Generic[T]):
                 raise DeserializeError(dict, self.obj, self.new_depth)
             return {
                 name: Deserialize(
-                    self.obj.get(name), _type, self.new_depth
+                    obj=self.obj.get(name),
+                    constructor=_type,
+                    depth=self.new_depth,
+                    convert_primitives=self.convert_primitives,
                 ).run()
                 for name, _type in get_type_hints(self.constructor).items()
             }  # type: ignore
         return NoResult
 
     def _check_initvar_instance(self) -> Possible[T]:
-        """Checks if a result is an InitVar."""
+        """Checks if a result is a dataclasses.InitVar."""
         if _is_initvar_instance(self.constructor):
             return Deserialize(
-                self.obj,
-                self.constructor.type,  # type: ignore
-                self.new_depth,
+                obj=self.obj,
+                constructor=self.constructor.type,  # type: ignore
+                depth=self.new_depth,
+                convert_primitives=self.convert_primitives,
             ).run()
         return NoResult
 
@@ -272,28 +319,57 @@ class Deserialize(Generic[T]):
         return NoResult
 
     def _check_primitive(self) -> Possible[T]:
-        """Check if result is a primitive."""
-        if self.constructor in (str, int, float, bool):
+        """Check if result is a primitive.
+
+        If `self.convert_primitives` is `True`, tries to automatically
+        convert primitive value to the specified type.
+        """
+        if self.constructor in _PRIMITIVES:
             if not isinstance(self.obj, self.constructor):
-                raise DeserializeError(
-                    self.constructor, self.obj, self.new_depth
-                )
+                if not self.convert_primitives:
+                    raise DeserializeError(
+                        self.constructor, self.obj, self.new_depth
+                    )
+                try:
+                    return self.constructor(self.obj)  # type: ignore
+                except (ValueError, TypeError) as error:
+                    raise DeserializeError(
+                        self.constructor, self.obj, self.new_depth
+                    ) from error
             return self.obj
         return NoResult
 
     def _check_any(self) -> Possible[T]:
-        """Check if result is Any."""
+        """Check if result is typing.Any."""
         if _is_any(self.constructor):
             return self.obj  # type: ignore
         return NoResult
 
     def _check_union(self) -> Possible[T]:
-        """Check if result is a Union."""
+        """Check if result is a Union.
+
+        Encountering this type usually recursively disables
+        `convert_primitives` for items found within the `Union`. The
+        exception are `Optional` types, which are really `Union[Any,
+        None]` and common enough for us to find a workaround.
+        """
         if _is_union(self.constructor):
-            for argument in get_args(self.constructor):
+            args = get_args(self.constructor)
+            is_optional = len(args) == 2 and type(None) in args
+            if is_optional and self.obj is None:
+                return None  # type: ignore
+            for argument in args:
+                convert_primitives = (
+                    self.convert_primitives
+                    and is_optional
+                    and argument != type(None)
+                )
                 try:
                     return Deserialize(
-                        self.obj, argument, self.new_depth
+                        obj=self.obj,
+                        constructor=argument,
+                        depth=self.new_depth,
+                        convert_primitives=convert_primitives,
                     ).run()
                 except DeserializeError:
                     pass
@@ -304,13 +380,14 @@ class Deserialize(Generic[T]):
         """Checks whether it's a typevar."""
         if _is_typevar(self.constructor):  # type: ignore
             return Deserialize(
-                self.obj,
-                (
+                obj=self.obj,
+                constructor=(
                     Union[self.constructor.__constraints__]  # type: ignore
                     if self.constructor.__constraints__  # type: ignore
                     else object
                 ),
-                self.new_depth,
+                depth=self.new_depth,
+                convert_primitives=self.convert_primitives,
             ).run()
         return NoResult
 
@@ -322,7 +399,7 @@ def _is_initvar_instance(typeval: Type) -> bool:
 
 def _is_any(typeval: Type) -> bool:
     """Check if a type is the equivalent to Any."""
-    return typeval in (Any, object, InitVar)
+    return typeval in _ANY
 
 
 def _is_union(typeval: Type) -> bool:
@@ -341,3 +418,7 @@ _TYPE_UNSAFE_CHECKS = (
     _is_typevar,
     _is_union,
 )
+
+_PRIMITIVES = {str, int, float, bool}
+
+_ANY = {Any, object, InitVar}

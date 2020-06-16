@@ -11,7 +11,8 @@ This library has the following goals:
 2. "Serialize" structured, type-hinted Python objects into unstructured Python types (eg, the reverse)
 3. Provide the user clear error messages in the event that serde fails.
 4. Require no type changes on the part of the user. No need to give your containers a special type to help this library perform serde, it works out of the box.
-5. Work correctly for all forms of NamedTuples and dataclasses. Unfortunately, prior to Python 3.8, the dataclasses had some deficiencies. Mainly, `dataclasses.InitVar` was a singleton whose contained type could not be inspected at runtime. For this reason, only Python 3.8+ is supported.
+5. [Optionally] automatically convert primitive types, but stop converting when ambiguous types are encountered (`Union`), but handle the special case of `Optional`, which is used in many codebases.
+6. Work correctly for all forms of NamedTuples and dataclasses. Unfortunately, prior to Python 3.8, the dataclasses had some deficiencies. Mainly, `dataclasses.InitVar` was a singleton whose contained type could not be inspected at runtime. For this reason, only Python 3.8+ is supported.
 
 No external dependencies. Python 3.8+.
 
