@@ -32,7 +32,9 @@ from .errors import DeserializeError
 from .typedefs import NamedTupleType, NoResult, Possible, T, is_no_result
 
 
-def load(obj: object, constructor: Type[T], typesafe_constructor=True) -> T:
+def load(
+    obj: Any, constructor: Type[T], typesafe_constructor: bool = True
+) -> T:
     """Deserialize an object into its constructor.
 
     :param obj: the 'serialized' object that we want to deserialize
@@ -65,7 +67,7 @@ class Deserialize(Generic[T]):
     strange and mysterious ways.
     """
 
-    obj: object
+    obj: Any
     constructor: Type[T]
     depth: InitVar[List[Type]]
     new_depth: List[Type] = field(init=False)

@@ -1,10 +1,10 @@
-"""Custom Exceptions for serdataclasses"""
+"""Custom Exceptions for serdataclasses."""
 
-from typing import List, Type
+from typing import Any, List, Type
 
 
 class DeserializeError(Exception):
-    """Exception for deserialization failure
+    """Exception for deserialization failure.
 
     Deserializing arbitrarily-nested JSON often results in opaque
     deserialization errors. This Exception class provides a clear, consistent
@@ -21,7 +21,7 @@ class DeserializeError(Exception):
     def __init__(
         self,
         type_expected: Type,
-        value_received: object,
+        value_received: Any,
         depth: List[Type],
         message_prefix: str = "",
         message_postfix: str = "",

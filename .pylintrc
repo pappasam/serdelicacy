@@ -16,7 +16,7 @@ load-plugins=
 
 [MESSAGES CONTROL]
 # can opt to enable instead if you want
-disable=logging-format-interpolation, bad-continuation
+disable=logging-format-interpolation, bad-continuation, isinstance-second-argument-not-valid-type
 
 [REPORTS]
 

@@ -1,13 +1,13 @@
-"""Serialize typed structures into less-typed Python objects"""
+"""Serialize typed structures into less-typed Python objects."""
 
 from dataclasses import asdict, is_dataclass
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from .typedefs import NamedTupleType
 
 
-def dump(obj: object) -> object:
-    """Serialize the object into a less-typed form
+def dump(obj: Any) -> Any:
+    """Serialize the object into a less-typed form.
 
     Serialize from -> to:
         * dataclass -> Dict
