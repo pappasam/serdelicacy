@@ -30,6 +30,7 @@ from typing import (
 
 from .errors import DeserializeError
 from .typedefs import NamedTupleType, NoResult, Possible, T, is_no_result
+from .undefined import UNDEFINED, Undefined
 
 
 def load(
@@ -101,6 +102,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             self._check_any,
             self._check_primitive,
             self._check_none,
+            self._check_undefined,
             self._check_dataclass,
             self._check_namedtuple,
             self._check_typed_dict,
@@ -122,6 +124,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 )
             )  # type: ignore
         except StopIteration:
+            # pylint: disable=raise-missing-from
             raise DeserializeError(
                 self.constructor,
                 self.obj,
@@ -138,7 +141,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             return self.constructor(
                 **{
                     name: Deserialize(
-                        obj=self.obj.get(name),
+                        obj=self.obj.get(name, UNDEFINED),
                         constructor=_type,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
@@ -162,7 +165,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             return self.constructor(
                 **{
                     name: Deserialize(
-                        obj=self.obj.get(name),
+                        obj=self.obj.get(name, UNDEFINED),
                         constructor=_type,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
@@ -290,7 +293,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 raise DeserializeError(dict, self.obj, self.new_depth)
             return {
                 name: Deserialize(
-                    obj=self.obj.get(name),
+                    obj=self.obj.get(name, UNDEFINED),
                     constructor=_type,
                     depth=self.new_depth,
                     convert_primitives=self.convert_primitives,
@@ -315,6 +318,18 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         if self.constructor == type(None):
             if not self.obj is None:
                 raise DeserializeError(type(None), self.obj, self.new_depth)
+            return self.obj  # type: ignore
+        return NoResult
+
+    def _check_undefined(self) -> Possible[T]:
+        """Checks if a result is UNDEFINED.
+
+        This case is extremely rare / somewhat nonsensical, but is
+        included here for completeness sake.
+        """
+        if self.constructor == Undefined:
+            if not self.obj is UNDEFINED:
+                raise DeserializeError(Undefined, self.obj, self.new_depth)
             return self.obj  # type: ignore
         return NoResult
 
@@ -356,13 +371,15 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         if _is_union(self.constructor):
             args = get_args(self.constructor)
             is_optional = len(args) == 2 and type(None) in args
+            is_optional_property = len(args) == 2 and Undefined in args
             if is_optional and self.obj is None:
                 return None  # type: ignore
+            if is_optional_property and self.obj is UNDEFINED:
+                return UNDEFINED  # type: ignore
             for argument in args:
-                convert_primitives = (
-                    self.convert_primitives
-                    and is_optional
-                    and argument != type(None)
+                convert_primitives = self.convert_primitives and (
+                    (is_optional and argument != type(None))
+                    or (is_optional_property and argument != Undefined)
                 )
                 try:
                     return Deserialize(
@@ -422,3 +439,5 @@ _TYPE_UNSAFE_CHECKS = (
 _PRIMITIVES = {str, int, float, bool}
 
 _ANY = {Any, object, InitVar}
+
+_UNION_PRIMITIVE_ALLOW_CONVERSION = {type(None), Undefined}
