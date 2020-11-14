@@ -6,7 +6,7 @@ from typing import Dict, List, NamedTuple, Optional, Tuple, TypedDict, Union
 from hypothesis import given
 from hypothesis import strategies as st
 
-from serdataclasses import dump, load
+from serdataclasses import UNDEFINED, OptionalProperty, dump, load
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 # pylint: disable=too-many-instance-attributes
@@ -37,7 +37,7 @@ class Big:
     my_float: float
     my_named_tuple: SmallNamedTupleSingular
     my_list_small: List["SmallNamedTuple"]
-    my_optional_str: Optional[str]
+    my_optional_str: OptionalProperty[Optional[str]]
     my_list_of_small_or_str: List[Union[SmallDataClass, str]]
     my_list: List
     my_dict: Dict[int, SmallDataClass]
@@ -99,10 +99,13 @@ def test_serde_big_data(big_data: dict):
     assert deserialized.my_typed_dict == big_data["my_typed_dict"]
     assert deserialized.my_tuple == big_data["my_tuple"]
     assert deserialized.my_tuple_long == big_data["my_tuple_long"]
+    if "my_optional_str" in big_data:
+        assert deserialized.my_optional_str == big_data["my_optional_str"]
+    else:
+        assert deserialized.my_optional_str is UNDEFINED
     serialized = dump(deserialized)
     assert serialized == {
         "my_default": "default_value",
-        **{"my_optional_str": None},
         **big_data,
         **{
             "my_tuple": list(deserialized.my_tuple),
