@@ -133,6 +133,16 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 self.key,
                 message_prefix="Unsupported type. ",
             )
+        except Exception as error:
+            if not isinstance(error, DeserializeError):
+                raise DeserializeError(
+                    self.constructor,
+                    self.obj,
+                    self.new_depth,
+                    self.key,
+                    message_override=str(error),
+                ) from error
+            raise
 
     def _check_dataclass(self) -> Possible[T]:
         """Checks whether a result is a dataclass."""

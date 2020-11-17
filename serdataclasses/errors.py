@@ -31,6 +31,8 @@ class DeserializeError(SerdeError):
         typing.List[int] >>> <class 'int'>
     """
 
+    # pylint: disable=too-many-arguments
+
     def __init__(
         self,
         type_expected: Type,
@@ -39,12 +41,15 @@ class DeserializeError(SerdeError):
         key: Any,
         message_prefix: str = "",
         message_postfix: str = "",
+        message_override: str = "",
     ):
         depth_messages = [
             {repr(depth_item.constructor): repr(depth_item.value)}
             for depth_item in depth
         ]
-        if value_received is UNDEFINED and key is not UNDEFINED:
+        if message_override:
+            message = message_override
+        elif value_received is UNDEFINED and key is not UNDEFINED:
             message = f"missing required key {repr(key)}"
             depth_messages.pop()
         else:
