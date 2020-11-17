@@ -28,7 +28,7 @@ from typing import (
     get_type_hints,
 )
 
-from .errors import DeserializeError
+from .errors import DepthContainer, DeserializeError
 from .typedefs import NamedTupleType, NoResult, Possible, T, is_no_result
 from .undefined import UNDEFINED, Undefined
 
@@ -85,16 +85,17 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
 
     obj: Any
     constructor: Type[T]
-    depth: InitVar[List[Type]]
+    depth: InitVar[List[DepthContainer]]
     convert_primitives: bool
-    new_depth: List[Type] = field(init=False)
+    key: Any = UNDEFINED
+    new_depth: List[DepthContainer] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
     check_functions: Iterable[Callable[[], Possible[T]]] = field(init=False)
 
     def __post_init__(self, depth) -> None:
         """Initialize the uninitialized."""
-        self.new_depth = depth + [self.constructor]
+        self.new_depth = depth + [DepthContainer(self.constructor, self.obj)]
         self.constructor_args = get_args(self.constructor)
         origin = get_origin(self.constructor)
         self.constructor_origin = origin if origin else self.constructor
@@ -129,6 +130,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 self.constructor,
                 self.obj,
                 self.new_depth,
+                self.key,
                 message_prefix="Unsupported type. ",
             )
 
@@ -136,7 +138,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         """Checks whether a result is a dataclass."""
         if is_dataclass(self.constructor):
             if not isinstance(self.obj, Mapping):
-                raise DeserializeError(Mapping, self.obj, self.new_depth)
+                raise DeserializeError(
+                    Mapping, self.obj, self.new_depth, self.key
+                )
             parameters = inspect.signature(self.constructor).parameters
             return self.constructor(
                 **{
@@ -145,6 +149,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         constructor=_type,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
+                        key=name,
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                     if not (
@@ -160,7 +165,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         """Checks whether a result is a namedtuple."""
         if isinstance(self.constructor, NamedTupleType):
             if not isinstance(self.obj, Mapping):
-                raise DeserializeError(Mapping, self.obj, self.new_depth)
+                raise DeserializeError(
+                    Mapping, self.obj, self.new_depth, self.key
+                )
             parameters = inspect.signature(self.constructor).parameters
             return self.constructor(
                 **{
@@ -169,6 +176,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         constructor=_type,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
+                        key=name,
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                     if not (
@@ -186,7 +194,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             self.constructor_origin, tuple
         ):
             if not isinstance(self.obj, Sequence):
-                raise DeserializeError(tuple, self.obj, self.new_depth)
+                raise DeserializeError(
+                    tuple, self.obj, self.new_depth, self.key
+                )
             if not self.constructor_args:
                 return self.constructor_origin(self.obj)  # type: ignore
             if (
@@ -207,6 +217,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     tuple,
                     self.obj,
                     self.new_depth,
+                    self.key,
                     message_prefix="Tuple incorrect length. ",
                 )
             return self.constructor_origin(
@@ -231,7 +242,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             self.constructor_origin, Sequence
         ):
             if not isinstance(self.obj, Sequence):
-                raise DeserializeError(Sequence, self.obj, self.new_depth)
+                raise DeserializeError(
+                    Sequence, self.obj, self.new_depth, self.key
+                )
             if self.constructor_args:
                 _arg = self.constructor_args[0]
             else:
@@ -257,7 +270,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             self.constructor_origin, Mapping
         ):
             if not isinstance(self.obj, Mapping):
-                raise DeserializeError(Mapping, self.obj, self.new_depth)
+                raise DeserializeError(
+                    Mapping, self.obj, self.new_depth, self.key
+                )
             if self.constructor_args:
                 _tpkey = self.constructor_args[0]
                 _tpvalue = self.constructor_args[1]
@@ -277,6 +292,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         constructor=_tpvalue,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
+                        key=key,
                     )
                     .run()
                     for key, value in self.obj.items()
@@ -290,13 +306,16 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         if type(self.constructor) == _TypedDictMeta:
             # pylint: enable=unidiomatic-typecheck
             if not isinstance(self.obj, dict):
-                raise DeserializeError(dict, self.obj, self.new_depth)
+                raise DeserializeError(
+                    dict, self.obj, self.new_depth, self.key
+                )
             return {
                 name: Deserialize(
                     obj=self.obj.get(name, UNDEFINED),
                     constructor=_type,
                     depth=self.new_depth,
                     convert_primitives=self.convert_primitives,
+                    key=name,
                 ).run()
                 for name, _type in get_type_hints(self.constructor).items()
             }  # type: ignore
@@ -317,7 +336,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         """Checks if a result is None."""
         if self.constructor == type(None):
             if not self.obj is None:
-                raise DeserializeError(type(None), self.obj, self.new_depth)
+                raise DeserializeError(
+                    type(None), self.obj, self.new_depth, self.key
+                )
             return self.obj  # type: ignore
         return NoResult
 
@@ -329,7 +350,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         """
         if self.constructor == Undefined:
             if not self.obj is UNDEFINED:
-                raise DeserializeError(Undefined, self.obj, self.new_depth)
+                raise DeserializeError(
+                    Undefined, self.obj, self.new_depth, self.key
+                )
             return self.obj  # type: ignore
         return NoResult
 
@@ -343,13 +366,13 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             if not isinstance(self.obj, self.constructor):
                 if not self.convert_primitives:
                     raise DeserializeError(
-                        self.constructor, self.obj, self.new_depth
+                        self.constructor, self.obj, self.new_depth, self.key
                     )
                 try:
                     return self.constructor(self.obj)  # type: ignore
                 except (ValueError, TypeError) as error:
                     raise DeserializeError(
-                        self.constructor, self.obj, self.new_depth
+                        self.constructor, self.obj, self.new_depth, self.key
                     ) from error
             return self.obj
         return NoResult
@@ -390,7 +413,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     ).run()
                 except DeserializeError:
                     pass
-            raise DeserializeError(self.constructor, self.obj, self.new_depth)
+            raise DeserializeError(
+                self.constructor, self.obj, self.new_depth, self.key
+            )
         return NoResult
 
     def _check_typevar(self) -> Possible[T]:

@@ -1,10 +1,23 @@
 """Custom Exceptions for serdataclasses."""
 
-from typing import Any, List, Type
+from typing import Any, List, NamedTuple, Type
+
+from .undefined import UNDEFINED
 
 
-class DeserializeError(Exception):
-    """Exception for deserialization failure.
+class DepthContainer(NamedTuple):
+    """Contain information."""
+
+    constructor: Type
+    value: Any
+
+
+class SerdeError(Exception):
+    """Root error for serdataclasses."""
+
+
+class DeserializeError(SerdeError):
+    """Deserialization failure.
 
     Deserializing arbitrarily-nested JSON often results in opaque
     deserialization errors. This Exception class provides a clear, consistent
@@ -22,16 +35,30 @@ class DeserializeError(Exception):
         self,
         type_expected: Type,
         value_received: Any,
-        depth: List[Type],
+        depth: List[DepthContainer],
+        key: Any,
         message_prefix: str = "",
         message_postfix: str = "",
     ):
-        message = (
-            message_prefix
-            + f"Expected '{type_expected}' "
-            + f"but received '{type(value_received)}'"
-            + f" for value '{value_received}'."
-            + message_postfix
+        depth_messages = [
+            {repr(depth_item.constructor): repr(depth_item.value)}
+            for depth_item in depth
+        ]
+        if value_received is UNDEFINED and key is not UNDEFINED:
+            message = f"missing required key {repr(key)}"
+            depth_messages.pop()
+        else:
+            message = (
+                message_prefix
+                + f"expected {repr(type_expected)} "
+                + f"but received {repr(type(value_received))} "
+                + message_postfix
+            )
+        len_depth = len(depth_messages)
+        depth_str = "  " + "\n  ".join(
+            (
+                f"{len_depth - i}. {repr(depth_message).strip('{} ')}"
+                for i, depth_message in enumerate(reversed(depth_messages))
+            )
         )
-        depth_str = " >>> ".join([str(item) for item in depth])
-        super().__init__(f"{message}\nError location: {depth_str}")
+        super().__init__(f"{message}\n{depth_str}")

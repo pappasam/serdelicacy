@@ -7,37 +7,55 @@ from .typedefs import NamedTupleType
 from .undefined import UNDEFINED
 
 
-def dump(obj: Any) -> Any:
+def dump(obj: Any, convert_undefined_to_none: bool = False) -> Any:
     """Serialize the object into a less-typed form.
 
-    Serialize from -> to:
-        * dataclass -> Dict
-        * NamedTuple -> Dict
-        * str -> str
-        * Sequence -> List
-        * Mapping -> Dicts
-        * Anything else -> itself
+    :param convert_undefined_to_none: retain undefined property's key and
+        convert its value to None. This will keep all keys when serializing,
+        useful if you want to keep all column names and assign value of `None`
+        to missing columns.
+
+    Serialize from: - `x` -> `y`:
+      - `dataclass` -> `Dict`
+      - `NamedTuple` -> `Dict`
+      - `str` -> `str`
+      - `Sequence` -> `List`
+      - `Mapping` -> `Dicts`
+      * if `convert_undefined_to_none` is True:
+        - `UNDEFINED` -> `None`
+      * else
+        - `UNDEFINED` keys are filtered out and undefined values are kept as-is
+      - `Anything else` -> `itself`
     """
+    # pylint: disable=too-many-return-statements
     if is_dataclass(obj):
         return {
-            key: dump(value)
+            key: dump(value, convert_undefined_to_none)
             for key, value in asdict(obj).items()
-            if value is not UNDEFINED
+            if not convert_undefined_to_none and (value is not UNDEFINED)
         }
     if isinstance(obj, NamedTupleType):
         return {
-            key: dump(value)
+            key: dump(value, convert_undefined_to_none)
             for key, value in obj._asdict().items()
-            if value is not UNDEFINED
+            if not convert_undefined_to_none and (value is not UNDEFINED)
         }
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Sequence):
-        return [dump(item) for item in obj if item is not UNDEFINED]
+        return [
+            dump(item, convert_undefined_to_none)
+            for item in obj
+            if not convert_undefined_to_none and (item is not UNDEFINED)
+        ]
     if isinstance(obj, Mapping):
         return {
-            dump(key): dump(value)
+            dump(key, convert_undefined_to_none): dump(
+                value, convert_undefined_to_none
+            )
             for key, value in obj.items()
-            if value is not UNDEFINED
+            if not convert_undefined_to_none and (value is not UNDEFINED)
         }
+    if convert_undefined_to_none and (obj is UNDEFINED):
+        return None
     return obj
