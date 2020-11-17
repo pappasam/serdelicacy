@@ -7,14 +7,14 @@
 
 This library has the following goals:
 
-1. "Deserialize" unstructured Python types into structured, type-hinted Python types (dataclasses.dataclass, typing.NamedTuples).
+1. "Deserialize" unstructured Python types into structured, type-hinted Python types (`dataclasses.dataclass`, `typing.NamedTuple`).
 2. "Serialize" structured, type-hinted Python objects into unstructured Python types (eg, the reverse)
-3. Provide the user clear error messages in the event that serde fails.
+3. Provide the user with clear error messages when serde fails.
 4. Require no type changes on the part of the user. No need to give your containers a special type to help this library perform serde, it works out of the box.
-5. [Optionally] automatically convert primitive types, but stop converting when ambiguous types are encountered (`Union`), but handle the special case of `Optional`, which is used in many codebases.
-6. Work correctly for all forms of NamedTuples and dataclasses. Unfortunately, prior to Python 3.8, the dataclasses had some deficiencies. Mainly, `dataclasses.InitVar` was a singleton whose contained type could not be inspected at runtime. For this reason, only Python 3.8+ is supported.
-
-No external dependencies. Python 3.8+.
+5. Support all `NamedTuple`s and `dataclass`es. Before Python 3.8, `dataclasses.InitVar` was a singleton with an opaque runtime type. Because of this deficiency, we support Python 3.8+.
+6. Sanely support [optional properties](https://www.typescriptlang.org/docs/handbook/interfaces.html#optional-properties) with a domain-specific `OptionalProperty`.
+7. Provide option to automatically convert primitive types, but avoid converting ambiguous types (`Union`, `TypeVar`, etc). Handle the special cases of `Optional` and `OptionalProperty`.
+8. Require no 3rd party dependencies.
 
 ## Installation
 
@@ -28,58 +28,22 @@ poetry add serdataclasses
 
 ## Usage
 
-```python
-import dataclasses
-import typing
-import serdataclasses
-
-@dataclasses.dataclass
-class SmallContainer:
-    my_str: str
-
-@dataclasses.dataclass
-class BigContainer:
-    my_int: int
-    my_list: typing.List[SmallContainer]
-
-MY_DATA = {
-    "my_int": 1,
-    "my_list": [
-        { "my_str": "rawr" },
-        { "my_str": "woof" },
-    ],
-}
-
-# Deserialization
-MY_STRUCTURED_DATA = serdataclasses.load(MY_DATA, BigContainer)
-print("Deserialization:", MY_STRUCTURED_DATA)
-
-# Serialization
-MY_UNSTRUCTURED_DATA_AGAIN = serdataclasses.dump(MY_STRUCTURED_DATA)
-print("Serialization:", MY_UNSTRUCTURED_DATA_AGAIN)
-```
-
-Result:
-
-```console
-Deserialization: BigContainer(my_int=1, my_list=[SmallContainer(my_str='rawr'), SmallContainer(my_str='woof')])
-Serialization: {'my_int': 1, 'my_list': [{'my_str': 'rawr'}, {'my_str': 'woof'}]}
-```
+See [examples folder](example).
 
 ## Local Development
 
-Local development for this project is quite simple.
+Local development for this project is simple.
 
 **Dependencies**
 
 Install the following tools manually.
 
-* [Poetry](https://github.com/sdispater/poetry#installation)
-* [GNU Make](https://www.gnu.org/software/make/)
+- [Poetry](https://github.com/sdispater/poetry#installation)
+- [GNU Make](https://www.gnu.org/software/make/)
 
-*Recommended*
+_Recommended_
 
-* [asdf](https://github.com/asdf-vm/asdf)
+- [asdf](https://github.com/asdf-vm/asdf)
 
 **Set up development environment**
 
@@ -95,8 +59,8 @@ make test
 
 ## Notes
 
-* Initially inspired by [undictify](https://github.com/Dobiasd/undictify) and a PR I helped with. serdataclasses's goals are different; it's exclusively focused on serde instead of general function signature overrides.
-* I also notice some striking similarities with a library called [typedload](https://github.com/ltworf/typedload) (great minds think alike, I guess :p). I renamed my top-level functions to "load" and "dump" in typedload's homage. Unfortunately, as of version `1.20`, typedload does not handle all types of dataclasses elegantly (mainly, InitVar). Since typedload supports Python 3.5+, it never will elegantly handle all dataclasses without lots of unfortunate conditionals in the codebase. If you must use Python 3.7-, I suggest looking into typedload.
+- Initially inspired by [undictify](https://github.com/Dobiasd/undictify) and a PR I helped with. serdataclasses's goals are different; it's focused on serde instead of general function signature overrides.
+- I also notice some striking similarities with a library called [typedload](https://github.com/ltworf/typedload) (great minds think alike, I guess :p). I renamed my top-level functions to "load" and "dump" in typedload's homage. Unfortunately, as of version `1.20`, typedload does not handle all types of dataclasses elegantly (mainly, InitVar). Since typedload supports Python 3.5+, it never will elegantly handle all dataclasses without lots of unfortunate conditionals in the codebase. If you must use Python 3.7-, I suggest looking into typedload.
 
 ## Written by
 
