@@ -6,6 +6,7 @@ from pprint import pprint
 from typing import List
 
 import serdataclasses
+from serdataclasses import OptionalProperty
 
 # pylint: disable=missing-class-docstring
 
@@ -29,8 +30,12 @@ class Book:
     editor: Person
     title: str
     category: List[str]
+    second_author: OptionalProperty[Person]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        # if self.second_author is UNDEFINED:
+        #     self.second_author = Person("John", "Doe")
+
         if len(self.category) < 2:
             raise ValueError("Must have at least 2 caregories")
 
@@ -43,7 +48,11 @@ loaded = serdataclasses.load(raw_data, Book)
 
 print(loaded.isbn)
 print(loaded.title)
+print(type(loaded.author.firstname))
+print(loaded.second_author)
 
-unloaded = serdataclasses.dump(loaded)
+unloaded1 = serdataclasses.dump(loaded)
+pprint(unloaded1)
 
-pprint(unloaded)
+unloaded2 = serdataclasses.dump(loaded, convert_undefined_to_none=True)
+pprint(unloaded2)

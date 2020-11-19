@@ -1,11 +1,11 @@
 {
   "isbn": "123-456-222",
   "author": {
-    "lastname": "Doe",
-    "firstname": "Jane"
+    "firstname": "Jane",
+    "lastname": "Doe"
   },
   "editor": {
-    "lastname": "smith",
+    "lastname": "Smith",
     "firstname": "Jane"
   },
   "title": "The Ultimate Database Study Guide",
