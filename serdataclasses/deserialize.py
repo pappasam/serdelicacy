@@ -371,8 +371,18 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
 
         If `self.convert_primitives` is `True`, tries to automatically
         convert primitive value to the specified type.
+
+        `None` and `UNDEFINED` are both considered "unconvertable"
         """
         if self.constructor in _PRIMITIVES:
+            if self.obj is UNDEFINED:
+                raise DeserializeError(
+                    self.constructor, self.obj, self.new_depth, self.key
+                )
+            if self.obj is None:
+                raise DeserializeError(
+                    self.constructor, self.obj, self.new_depth, self.key
+                )
             if not isinstance(self.obj, self.constructor):
                 if not self.convert_primitives:
                     raise DeserializeError(

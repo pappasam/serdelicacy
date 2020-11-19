@@ -7,6 +7,13 @@ from .typedefs import NamedTupleType
 from .undefined import UNDEFINED
 
 
+def _filter_keep(value: Any, keep_always: bool) -> bool:
+    """Determine whether we should keep a value in serialized output."""
+    if keep_always:
+        return True
+    return value is not UNDEFINED
+
+
 def dump(obj: Any, convert_undefined_to_none: bool = False) -> Any:
     """Serialize the object into a less-typed form.
 
@@ -32,21 +39,21 @@ def dump(obj: Any, convert_undefined_to_none: bool = False) -> Any:
         return {
             key: dump(value, convert_undefined_to_none)
             for key, value in asdict(obj).items()
-            if not convert_undefined_to_none and (value is not UNDEFINED)
+            if _filter_keep(value, convert_undefined_to_none)
         }
     if isinstance(obj, NamedTupleType):
         return {
             key: dump(value, convert_undefined_to_none)
             for key, value in obj._asdict().items()
-            if not convert_undefined_to_none and (value is not UNDEFINED)
+            if _filter_keep(value, convert_undefined_to_none)
         }
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Sequence):
         return [
-            dump(item, convert_undefined_to_none)
-            for item in obj
-            if not convert_undefined_to_none and (item is not UNDEFINED)
+            dump(value, convert_undefined_to_none)
+            for value in obj
+            if _filter_keep(value, convert_undefined_to_none)
         ]
     if isinstance(obj, Mapping):
         return {
@@ -54,7 +61,7 @@ def dump(obj: Any, convert_undefined_to_none: bool = False) -> Any:
                 value, convert_undefined_to_none
             )
             for key, value in obj.items()
-            if not convert_undefined_to_none and (value is not UNDEFINED)
+            if _filter_keep(value, convert_undefined_to_none)
         }
     if convert_undefined_to_none and (obj is UNDEFINED):
         return None
