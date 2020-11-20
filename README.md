@@ -113,7 +113,7 @@ Some observations:
 3. The first list element is a dictionary. So Python appears to have translated the JSON into a list of dictionaries.
 4. There is little inherent structure to the Python objects deserialized by the JSON module. By this, I mean that we have no way of knowing whether the dictionaries contain keys that we expect or are structured improperly. Should books also have an `"isbn"` field? Does code we write that uses `libraries_raw` expect an `"isbn"` field? What happens if there are missing tags?
 
-The first 3 items are merely facts; `serdataclasses` accepts these facts and builds on them. The 4th item in this list is THE problem that `serdataclasses` is designed to solve. If we take the above Python dictionary associate it with a Python variable `LIBRARIES`, we can define a container for use with `serdataclasses` to ingest `LIBRARIES` into a strongly-typed Python container.
+The first 3 items are merely facts; `serdataclasses` accepts these facts and builds on them. The 4th item in this list is THE problem that `serdataclasses` is designed to solve. If we take the above Python dictionary and associate it with a Python variable named `LIBRARIES`, we can define a strongly-typed Python container that `serdataclasses` can use to ingest `LIBRARIES`.
 
 ```python
 from dataclasses import dataclass, field
