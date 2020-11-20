@@ -5,13 +5,13 @@
 [![image](https://img.shields.io/pypi/pyversions/serdataclasses.svg)](https://python.org/pypi/serdataclasses)
 [![image-ci](https://github.com/pappasam/serdataclasses/workflows/serdataclasses%20ci/badge.svg)](https://github.com/pappasam/serdataclasses/actions?query=workflow%3A%22serdataclasses+ci%22)
 
-Serialize (`serdataclasses.dump`) from and deserialize (`serdataclasses.load`) to strongly-typed, native Python data structures.
+Serialize (`serdataclasses.dump`) and deserialize (`serdataclasses.load`) from/to strongly-typed, native Python data structures.
 
 ## Motivation
 
-No typing-focused [serde](https://en.wikipedia.org/wiki/Serialization) library in Python satisfies me. Call me needy, but when I translate between loosely-typed data structures like `list` and `dict` into strongly-typed data structures like `NamedTuple` and `dataclasses.dataclass`, I want the following capabilities:
+No typing-focused [serde](https://en.wikipedia.org/wiki/Serialization) library in Python satisfies me. Call me needy, but when I translate between loosely-typed data structures (like `list` and `dict`) into strongly-typed data structures (like `NamedTuple` and `dataclasses.dataclass`), I want the following capabilities:
 
-1. Effortlessl deserialization of unstructured Python types into structured, type-hinted Python types (`dataclasses.dataclass`, `typing.NamedTuple`)
+1. Effortless deserialization of unstructured Python types into structured, type-hinted Python types (`dataclasses.dataclass`, `typing.NamedTuple`)
 2. Effortless serialization of structured, type-hinted Python objects into unstructured Python types (eg, the reverse)
 3. Clear error messages when serde fails at runtime
 4. No inherited, non-standard types. dataclasses, NamedTuples, and other standard Python types are bread and butter
@@ -36,7 +36,7 @@ See [examples folder](example) if you'd like to get your hands dirty. Otherwise,
 
 ### Example: Libraries and Books
 
-Assume that, from an external API, you receive a `JSON` list of libraries containing the library name and a list of books that each library currently has.
+Assume that you receive a `JSON` list of libraries containing each library's name and a list of each library's books.
 
 ```json
 [
@@ -73,7 +73,7 @@ Assume that, from an external API, you receive a `JSON` list of libraries contai
 ]
 ```
 
-Now you want to ingest this document into Python. Your first step is probably to deserialize the JSON string (or file) into Python data structures. Assuming the JSON is read from a file called `libraries.py`, the following script will print the following:
+Now you want to ingest this document into Python. Your first step is probably to deserialize the JSON string (or file) into Python data structures.
 
 ```python
 import json
@@ -86,6 +86,8 @@ pprint(libraries_raw)
 print(type(libraries_raw))
 print(type(libraries_raw[0]))
 ```
+
+Assuming the JSON is read from a file called `libraries.py`, the preceding script will print:
 
 ```text
 [{'books': [{'author': 'Susy Smith',
@@ -257,7 +259,7 @@ serdataclasses.errors.DeserializeError: Received illegal year 1929, cannot be be
   1. 'typing.List[__main__.Library]': "[{'books': [{'author': 'Susy Smith', 'tags': ['boring'], 'title': 'Hello, World!', 'year': 1929}, {'author': 'Beth John', 'title': 'The great showman'}, {'author': None, 'title': 'My favorite pony'}], 'name': 'Clark County Library'}, {'books': [{'author': 'Smitty', 'tags': ['swell'], 'title': 'The great fun time', 'year': 1950}], 'name': 'Only 1 book here'}]"
 ```
 
-The error message begins with the error message received, followed by a reverse presention container types paired with the data they attempted to deserialize. This structure makes it incredibly easy to see not only what your error is, but where exactly it occured in both the data `serdataclasses.load` receives but also in the types `serdataclasses.load` uses to attempt to deserialize the received data.
+The error message begins with the error message received, followed by a reverse presentation container types paired with the data they attempted to deserialize. This structure makes it incredibly easy to see not only what your error is, but where exactly it occurred in both the data `serdataclasses.load` receives but also in the types `serdataclasses.load` uses to attempt to deserialize the received data.
 
 In serde, when working with resources external to your system, errors are inevitable. These error messages should hopefully make debugging your errors less annoying.
 
@@ -265,7 +267,7 @@ In serde, when working with resources external to your system, errors are inevit
 
 ### My JSON keys contain whitespace, etc
 
-Simple (yet hackzor) solution: use `typeing.TypeDict`'s [backwards-compatibility syntax](https://www.python.org/dev/peps/pep-0589/#alternative-syntax).
+Simple solution: use `typeing.TypeDict`'s [backwards-compatibility syntax](https://www.python.org/dev/peps/pep-0589/#alternative-syntax).
 
 ```python
 from pprint import pprint
