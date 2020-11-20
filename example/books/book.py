@@ -3,12 +3,15 @@
 import json
 from dataclasses import dataclass
 from pprint import pprint
-from typing import List
+from typing import List, TypeVar
 
 import serdataclasses
 from serdataclasses import OptionalProperty
 
 # pylint: disable=missing-class-docstring
+# pylint: disable=invalid-name
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -30,7 +33,7 @@ class Book:
     editor: Person
     title: str
     category: List[str]
-    second_author: OptionalProperty[Person]
+    second_author: OptionalProperty[str]
 
     def __post_init__(self) -> None:
         # if self.second_author is UNDEFINED:
@@ -46,6 +49,7 @@ with open("book.json", "r") as infile:
 
 loaded = serdataclasses.load(raw_data, Book)
 
+
 print(loaded.isbn)
 print(loaded.title)
 print(type(loaded.author.firstname))
@@ -53,6 +57,10 @@ print(loaded.second_author)
 
 unloaded1 = serdataclasses.dump(loaded)
 pprint(unloaded1)
+
+
+if loaded.second_author:
+    print("hello")
 
 unloaded2 = serdataclasses.dump(loaded, convert_undefined_to_none=True)
 pprint(unloaded2)
