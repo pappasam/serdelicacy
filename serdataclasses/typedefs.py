@@ -1,56 +1,53 @@
-"""Type definitions.
+"""Type definitions."""
 
-A JSON type that would be nice if recursive types were supported:
-
-    JsonValuesType = Union[
-        str,
-        int,
-        float,
-        bool,
-        None,
-        Dict[str, "JsonValuesType"],
-        List["JsonValuesType"],
-    ]
-
-    JsonType = Union[Dict[str, JsonValuesType], List[JsonValuesType]]
-"""
-
-from typing import (
-    Any,
-    Protocol,
-    Type,
-    TypeVar,
-    Union,
-    final,
-    runtime_checkable,
-)
+import enum
+from typing import Protocol, TypeVar, Union, runtime_checkable
 
 # pylint: disable=too-few-public-methods
 # pylint: disable=missing-function-docstring
 
-
-@final
-class NoResult:
-    """This value represents no result.
-
-    Necessary because we care about None
-    """
-
-    def __new__(cls) -> Type["NoResult"]:  # type: ignore
-        """Simply returns reference to itself, making a defacto singleton."""
-        return cls
-
-
-_V = TypeVar("_V")
-
-Possible = Union[_V, Type[NoResult]]  # pylint: disable=invalid-name
-
 T = TypeVar("T")  # pylint: disable=invalid-name
 
 
-def is_no_result(value: Any) -> bool:
-    """Checks if value is NoResult."""
-    return value is NoResult
+class Undefined(enum.Enum):
+    """Handles JavaScript/TypeScript `undefined` / optional properties.
+
+    TypeScript / JavaScript /  have 2 words that indicate something is missing:
+
+    - `undefined` == an attribute has not been defined
+    - `null` == an attribute's value is `null`
+    """
+
+    token = 0
+
+    def __repr__(self) -> str:
+        return "<Undefined property>"
+
+    def __bool__(self) -> bool:
+        return False
+
+
+OptionalProperty = Union[Undefined, T]
+
+UNDEFINED = Undefined.token
+
+
+class NoResult(enum.Enum):
+    """Special case type to indicate that a function returns no result.
+
+    Useful because `None`, which most functions return implicitly, is
+    `null` in JSON and therefore important for serde.
+    """
+
+    token = 0
+
+    def __bool__(self) -> bool:
+        return False
+
+
+PossibleResult = Union[NoResult, T]
+
+NO_RESULT = NoResult.token
 
 
 @runtime_checkable

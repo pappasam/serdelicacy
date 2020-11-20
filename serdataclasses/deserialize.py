@@ -29,8 +29,20 @@ from typing import (
 )
 
 from .errors import DepthContainer, DeserializeError
-from .typedefs import NamedTupleType, NoResult, Possible, T, is_no_result
-from .undefined import UNDEFINED, Undefined
+from .typedefs import (
+    NO_RESULT,
+    UNDEFINED,
+    NamedTupleType,
+    PossibleResult,
+    Undefined,
+)
+
+T = TypeVar("T")  # pylint: disable=invalid-name
+
+
+def _is_no_result(obj: Any) -> bool:
+    """Helper function to determine whether a value is NO_RESULT."""
+    return obj is NO_RESULT
 
 
 def load(
@@ -91,7 +103,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     new_depth: List[DepthContainer] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
-    check_functions: Iterable[Callable[[], Possible[T]]] = field(init=False)
+    check_functions: Iterable[Callable[[], PossibleResult[T]]] = field(
+        init=False
+    )
 
     def __post_init__(self, depth) -> None:
         """Initialize the uninitialized."""
@@ -120,7 +134,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         try:
             return next(
                 itertools.dropwhile(
-                    is_no_result,
+                    _is_no_result,
                     (function() for function in self.check_functions),
                 )
             )  # type: ignore
@@ -144,7 +158,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 ) from error
             raise
 
-    def _check_dataclass(self) -> Possible[T]:
+    def _check_dataclass(self) -> PossibleResult[T]:
         """Checks whether a result is a dataclass."""
         if is_dataclass(self.constructor):
             if not isinstance(self.obj, Mapping):
@@ -169,9 +183,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     )
                 }
             )  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_namedtuple(self) -> Possible[T]:
+    def _check_namedtuple(self) -> PossibleResult[T]:
         """Checks whether a result is a namedtuple."""
         if isinstance(self.constructor, NamedTupleType):
             if not isinstance(self.obj, Mapping):
@@ -196,9 +210,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     )
                 }
             )  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_tuple(self) -> Possible[T]:
+    def _check_tuple(self) -> PossibleResult[T]:
         """Checks whether a result is a Tuple type."""
         if isinstance(self.constructor_origin, type) and issubclass(
             self.constructor_origin, tuple
@@ -239,9 +253,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 ).run()
                 for i, arg in enumerate(self.constructor_args)
             )  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_sequence(self) -> Possible[T]:
+    def _check_sequence(self) -> PossibleResult[T]:
         """Checks whether a result is a Sequence type.
 
         Catches generic sequences. All sequence types that are treated
@@ -268,9 +282,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 ).run()
                 for value in self.obj
             )  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_mapping(self) -> Possible[T]:
+    def _check_mapping(self) -> PossibleResult[T]:
         """Checks whether a result is a Mapping type.
 
         Catches generic mappings. All mapping types that are treated
@@ -308,9 +322,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     for key, value in self.obj.items()
                 }
             )  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_typed_dict(self) -> Possible[T]:
+    def _check_typed_dict(self) -> PossibleResult[T]:
         """Checks whether a result is a typing.TypedDict."""
         # pylint: disable=unidiomatic-typecheck
         if type(self.constructor) == _TypedDictMeta:
@@ -329,9 +343,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 ).run()
                 for name, _type in get_type_hints(self.constructor).items()
             }  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_initvar_instance(self) -> Possible[T]:
+    def _check_initvar_instance(self) -> PossibleResult[T]:
         """Checks if a result is a dataclasses.InitVar."""
         if _is_initvar_instance(self.constructor):
             return Deserialize(
@@ -340,9 +354,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 depth=self.new_depth,
                 convert_primitives=self.convert_primitives,
             ).run()
-        return NoResult
+        return NO_RESULT
 
-    def _check_none(self) -> Possible[T]:
+    def _check_none(self) -> PossibleResult[T]:
         """Checks if a result is None."""
         if self.constructor == type(None):
             if not self.obj is None:
@@ -350,9 +364,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     type(None), self.obj, self.new_depth, self.key
                 )
             return self.obj  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_undefined(self) -> Possible[T]:
+    def _check_undefined(self) -> PossibleResult[T]:
         """Checks if a result is UNDEFINED.
 
         This case is extremely rare / somewhat nonsensical, but is
@@ -364,9 +378,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     Undefined, self.obj, self.new_depth, self.key
                 )
             return self.obj  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_primitive(self) -> Possible[T]:
+    def _check_primitive(self) -> PossibleResult[T]:
         """Check if result is a primitive.
 
         If `self.convert_primitives` is `True`, tries to automatically
@@ -395,15 +409,15 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         self.constructor, self.obj, self.new_depth, self.key
                     ) from error
             return self.obj
-        return NoResult
+        return NO_RESULT
 
-    def _check_any(self) -> Possible[T]:
+    def _check_any(self) -> PossibleResult[T]:
         """Check if result is typing.Any."""
         if _is_any(self.constructor):
             return self.obj  # type: ignore
-        return NoResult
+        return NO_RESULT
 
-    def _check_union(self) -> Possible[T]:
+    def _check_union(self) -> PossibleResult[T]:
         """Check if result is a Union.
 
         Encountering this type usually recursively disables
@@ -436,9 +450,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             raise DeserializeError(
                 self.constructor, self.obj, self.new_depth, self.key
             )
-        return NoResult
+        return NO_RESULT
 
-    def _check_typevar(self) -> Possible[T]:
+    def _check_typevar(self) -> PossibleResult[T]:
         """Checks whether it's a typevar."""
         if _is_typevar(self.constructor):  # type: ignore
             return Deserialize(
@@ -451,7 +465,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 depth=self.new_depth,
                 convert_primitives=self.convert_primitives,
             ).run()
-        return NoResult
+        return NO_RESULT
 
 
 def _is_initvar_instance(typeval: Type) -> bool:

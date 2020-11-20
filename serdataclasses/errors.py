@@ -2,7 +2,7 @@
 
 from typing import Any, List, NamedTuple, Type
 
-from .undefined import UNDEFINED
+from .typedefs import UNDEFINED
 
 
 class DepthContainer(NamedTuple):

@@ -3,8 +3,7 @@
 from dataclasses import asdict, is_dataclass
 from typing import Any, Mapping, Sequence
 
-from .typedefs import NamedTupleType
-from .undefined import UNDEFINED
+from .typedefs import UNDEFINED, NamedTupleType
 
 
 def _filter_keep(value: Any, keep_always: bool) -> bool:

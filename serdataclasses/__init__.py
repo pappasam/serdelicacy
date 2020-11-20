@@ -11,4 +11,4 @@ This library has two goals:
 from .deserialize import load
 from .errors import DeserializeError
 from .serialize import dump
-from .undefined import UNDEFINED, OptionalProperty
+from .typedefs import UNDEFINED, OptionalProperty
