@@ -261,6 +261,58 @@ The error message begins with the error message received, followed by a reverse 
 
 In serde, when working with resources external to your system, errors are inevitable. These error messages should hopefully make debugging your errors less annoying.
 
+## Frequent issues
+
+### My JSON keys contain whitespace, etc
+
+Simple (yet hackzor) solution: use `typeing.TypeDict`'s [backwards-compatibility syntax](https://www.python.org/dev/peps/pep-0589/#alternative-syntax).
+
+```python
+from pprint import pprint
+from typing import List, TypedDict
+
+import serdataclasses
+from serdataclasses import OptionalProperty
+
+DATA = [
+    {
+        "weird, key": 1,
+        "normal": 2,
+    },
+    {
+        "normal": 3,
+    },
+]
+
+DataItem = TypedDict(
+    "DataItem",
+    {
+        "weird, key": OptionalProperty[int],
+        "normal": int,
+    },
+)
+
+LOADED = serdataclasses.load(DATA, List[DataItem])
+
+print("Loaded data:")
+pprint(LOADED)
+
+print("Re-serialized data:")
+pprint(serdataclasses.dump(LOADED))
+```
+
+This prints the following to the console.
+
+```text
+Loaded data:
+[{'normal': 2, 'weird, key': 1},
+ {'normal': 3, 'weird, key': <Undefined property>}]
+Re-serialized data:
+[{'normal': 2, 'weird, key': 1}, {'normal': 3}]
+```
+
+Try changing values in your JSON data; you'll get runtime errors if your data does not conform to the above schema. Additionally, `mypy` should call out any misused variable keys / types. In short, this has enabled a type-safe load and a perfectly sane dump.
+
 ## Local Development
 
 Local development for this project is simple.
