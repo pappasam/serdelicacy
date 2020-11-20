@@ -9,7 +9,7 @@ Serialize (`serdataclasses.dump`) and deserialize (`serdataclasses.load`) from/t
 
 ## Motivation
 
-No typing-focused [serde](https://en.wikipedia.org/wiki/Serialization) library in Python satisfies me. Call me needy, but when I translate between loosely-typed data structures (like `list` and `dict`) into strongly-typed data structures (like `NamedTuple` and `dataclasses.dataclass`), I want the following capabilities:
+No typing-focused [serde](https://en.wikipedia.org/wiki/Serialization) library in Python satisfies me. Call me needy, but when I must translate loosely-typed data structures (like `list` and `dict`) to strongly-typed data structures (like `NamedTuple` and `dataclasses.dataclass`), I want the following capabilities:
 
 1. Effortless deserialization of unstructured Python types into structured, type-hinted Python types (`dataclasses.dataclass`, `typing.NamedTuple`)
 2. Effortless serialization of structured, type-hinted Python objects into unstructured Python types (eg, the reverse)
