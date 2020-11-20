@@ -1,4 +1,4 @@
-"""serdataclasses: load and dump data into strongly-typed data structures
+"""serdelicacy: load and dump data into strongly-typed data structures
 
 This library has two goals:
 

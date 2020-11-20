@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from pprint import pprint
 from typing import List, TypeVar
 
-import serdataclasses
-from serdataclasses import OptionalProperty
+import serdelicacy
+from serdelicacy import OptionalProperty
 
 # pylint: disable=missing-class-docstring
 # pylint: disable=invalid-name
@@ -47,7 +47,7 @@ with open("book.json", "r") as infile:
     raw_data = json.load(infile)
 
 
-loaded = serdataclasses.load(raw_data, Book)
+loaded = serdelicacy.load(raw_data, Book)
 
 
 print(loaded.isbn)
@@ -55,12 +55,12 @@ print(loaded.title)
 print(type(loaded.author.firstname))
 print(loaded.second_author)
 
-unloaded1 = serdataclasses.dump(loaded)
+unloaded1 = serdelicacy.dump(loaded)
 pprint(unloaded1)
 
 
 if loaded.second_author:
     print("hello")
 
-unloaded2 = serdataclasses.dump(loaded, convert_undefined_to_none=True)
+unloaded2 = serdelicacy.dump(loaded, convert_undefined_to_none=True)
 pprint(unloaded2)

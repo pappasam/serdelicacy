@@ -6,7 +6,7 @@ from typing import Dict, List, NamedTuple, Optional, Tuple, TypedDict, Union
 from hypothesis import given
 from hypothesis import strategies as st
 
-from serdataclasses import UNDEFINED, OptionalProperty, dump, load
+from serdelicacy import UNDEFINED, OptionalProperty, dump, load
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 # pylint: disable=too-many-instance-attributes

@@ -1,4 +1,4 @@
-"""Custom Exceptions for serdataclasses."""
+"""Custom Exceptions for serdelicacy."""
 
 from typing import Any, List, NamedTuple, Type
 
@@ -13,7 +13,7 @@ class DepthContainer(NamedTuple):
 
 
 class SerdeError(Exception):
-    """Root error for serdataclasses."""
+    """Root error for serdelicacy."""
 
 
 class DeserializeError(SerdeError):
@@ -23,7 +23,7 @@ class DeserializeError(SerdeError):
     deserialization errors. This Exception class provides a clear, consistent
     debugging message. Example:
 
-        serdataclasses.deserialize.DeserializeError: Expected '<class 'int'>'
+        serdelicacy.deserialize.DeserializeError: Expected '<class 'int'>'
         but received '<class 'str'>' for value '2'.
 
         Error location: <class 'test_all.MyDataClass'> >>>

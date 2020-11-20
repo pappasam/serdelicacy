@@ -12,15 +12,15 @@ multi_line_output = 3
 include_trailing_comma = true
 
 [tool.poetry]
-name = "serdataclasses"
-version = "0.8.0"
+name = "serdelicacy"
+version = "0.9.0"
 description = "Serialize/deserialize Python objects from/to typed structures."
 license = "MIT"
 readme = "README.md"
 authors = ["Sam Roeca <samuel.roeca@gmail.com>"]
-homepage = "https://github.com/pappasam/serdataclasses"
-repository = "https://github.com/pappasam/serdataclasses"
-keywords = ["typing", "json", "serde", "serialize", "deserialize"]
+homepage = "https://github.com/pappasam/serdelicacy"
+repository = "https://github.com/pappasam/serdelicacy"
+keywords = ["typing", "dataclass", "namedtuple", "json", "serde", "serialize", "deserialize"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Operating System :: OS Independent",
@@ -58,8 +58,8 @@ whitelist_externals = poetry
 skip_install = true
 commands =
   poetry install
-  poetry run black --check --diff serdataclasses tests
-  poetry run mypy serdataclasses
-  poetry run pylint serdataclasses tests
+  poetry run black --check --diff serdelicacy tests
+  poetry run mypy serdelicacy
+  poetry run pylint serdelicacy tests
   poetry run pytest -vv
 """
