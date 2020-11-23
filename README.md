@@ -32,7 +32,7 @@ poetry add serdelicacy
 
 ## Usage
 
-See [examples folder](example) if you'd like to get your hands dirty. Otherwise, keep reading for a complete, real-world example.
+See [examples folder](https://github.com/pappasam/serdelicacy/tree/master/example) if you'd like to get your hands dirty. Otherwise, keep reading for a complete, real-world example.
 
 ### Example: Libraries and Books
 
