@@ -249,17 +249,7 @@ class Library:
 LIBRARIES_LOADED = serdelicacy.load(LIBRARIES, List[Library])
 ```
 
-Running this script should give you the following error message (traceback omitted because it can get somewhat long)
-
-```text
-serdelicacy.errors.DeserializeError: Received illegal year 1929, cannot be before 1930
-  4. "<class '__main__.Book'>": "{'author': 'Susy Smith', 'tags': ['boring'], 'title': 'Hello, World!', 'year': 1929}"
-  3. 'typing.List[__main__.Book]': "[{'author': 'Susy Smith', 'tags': ['boring'], 'title': 'Hello, World!', 'year': 1929}, {'author': 'Beth John', 'title': 'The great showman'}, {'author': None, 'title': 'My favorite pony'}]"
-  2. "<class '__main__.Library'>": "{'books': [{'author': 'Susy Smith', 'tags': ['boring'], 'title': 'Hello, World!', 'year': 1929}, {'author': 'Beth John', 'title': 'The great showman'}, {'author': None, 'title': 'My favorite pony'}], 'name': 'Clark County Library'}"
-  1. 'typing.List[__main__.Library]': "[{'books': [{'author': 'Susy Smith', 'tags': ['boring'], 'title': 'Hello, World!', 'year': 1929}, {'author': 'Beth John', 'title': 'The great showman'}, {'author': None, 'title': 'My favorite pony'}], 'name': 'Clark County Library'}, {'books': [{'author': 'Smitty', 'tags': ['swell'], 'title': 'The great fun time', 'year': 1950}], 'name': 'Only 1 book here'}]"
-```
-
-The error message begins with the error message received, followed by a reverse presentation container types paired with the data they attempted to deserialize. This structure makes it incredibly easy to see not only what your error is, but where exactly it occurred in both the data `serdelicacy.load` receives but also in the types `serdelicacy.load` uses to attempt to deserialize the received data.
+Running this script should give you a clear error message containing a description of the error you received, along with each intermediate object in the recursive chain to help you debug further. This structure makes it incredibly easy to see not only what your error is, but where it occurred in both the data `serdelicacy.load` receives but also in the types `serdelicacy.load` uses to attempt to deserialize the received data.
 
 In serde, when working with resources external to your system, errors are inevitable. These error messages should hopefully make debugging your errors less annoying.
 

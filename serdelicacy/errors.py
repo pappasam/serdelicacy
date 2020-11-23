@@ -1,5 +1,6 @@
 """Custom Exceptions for serdelicacy."""
 
+import json
 from typing import Any, List, NamedTuple, Type
 
 from .typedefs import MISSING
@@ -9,6 +10,7 @@ class DepthContainer(NamedTuple):
     """Contain information."""
 
     constructor: Type
+    key: Any
     value: Any
 
 
@@ -20,15 +22,8 @@ class DeserializeError(SerdeError):
     """Deserialization failure.
 
     Deserializing arbitrarily-nested JSON often results in opaque
-    deserialization errors. This Exception class provides a clear, consistent
-    debugging message. Example:
-
-        serdelicacy.deserialize.DeserializeError: Expected '<class 'int'>'
-        but received '<class 'str'>' for value '2'.
-
-        Error location: <class 'test_all.MyDataClass'> >>>
-        typing.List[test_all.Another] >>> <class 'test_all.Another'> >>>
-        typing.List[int] >>> <class 'int'>
+    deserialization errors. This Exception class provides a clear,
+    consistent debugging message.
     """
 
     # pylint: disable=too-many-arguments
@@ -43,10 +38,19 @@ class DeserializeError(SerdeError):
         message_postfix: str = "",
         message_override: str = "",
     ):
-        depth_messages = [
-            {repr(depth_item.constructor): repr(depth_item.value)}
-            for depth_item in depth
-        ]
+        depth_messages = []
+        for depth_item in depth:
+            value = {
+                "key": repr(depth_item.key),
+                "value": {
+                    "type_expected": repr(depth_item.constructor),
+                    "object_received": repr(depth_item.value),
+                },
+            }
+            if depth_item.key is MISSING:
+                del value["key"]
+            depth_messages.append(value)
+
         if message_override:
             message = message_override
         elif value_received is MISSING and key is not MISSING:
@@ -59,11 +63,6 @@ class DeserializeError(SerdeError):
                 + f"but received {repr(type(value_received))} "
                 + message_postfix
             )
-        len_depth = len(depth_messages)
-        depth_str = "  " + "\n  ".join(
-            (
-                f"{len_depth - i}. {repr(depth_message).strip('{} ')}"
-                for i, depth_message in enumerate(reversed(depth_messages))
-            )
-        )
+        depth_messages[-1]["error"] = message
+        depth_str = json.dumps(depth_messages, indent=2)
         super().__init__(f"{message}\n{depth_str}")

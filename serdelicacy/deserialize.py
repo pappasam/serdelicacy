@@ -99,7 +99,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     constructor: Type[T]
     depth: InitVar[List[DepthContainer]]
     convert_primitives: bool
-    key: Any = MISSING
+    key: Any = field(default=MISSING)
     new_depth: List[DepthContainer] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
@@ -109,7 +109,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
 
     def __post_init__(self, depth) -> None:
         """Initialize the uninitialized."""
-        self.new_depth = depth + [DepthContainer(self.constructor, self.obj)]
+        self.new_depth = depth + [
+            DepthContainer(self.constructor, self.key, self.obj)
+        ]
         self.constructor_args = get_args(self.constructor)
         origin = get_origin(self.constructor)
         self.constructor_origin = origin if origin else self.constructor
@@ -269,6 +271,14 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 raise DeserializeError(
                     Sequence, self.obj, self.new_depth, self.key
                 )
+            if isinstance(self.obj, str):
+                raise DeserializeError(
+                    Sequence,
+                    self.obj,
+                    self.new_depth,
+                    self.key,
+                    message_postfix=". <str> is not automatically converted.",
+                )
             if self.constructor_args:
                 _arg = self.constructor_args[0]
             else:
@@ -310,6 +320,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         constructor=_tpkey,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
+                        key=key,
                     )
                     .run(): Deserialize(
                         obj=value,
