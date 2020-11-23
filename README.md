@@ -17,7 +17,7 @@ No typing-focused [serde](https://en.wikipedia.org/wiki/Serialization) library i
 4. No inherited, non-standard types. dataclasses, NamedTuples, and other standard Python types are bread and butter
 5. Editor support: I like my autocompletion, so I jump through lots of hoops to make this library compatible with Jedi
 6. Handle [optional properties](https://www.typescriptlang.org/docs/handbook/interfaces.html#optional-properties) with a domain-specific `serdelicacy.OptionalProperty`
-7. Provide option to automatically convert primitive types, but avoid converting ambiguous types (`Union`, `TypeVar`, etc). Handle of `Optional` and `serdelicacy.OptionalProperty`
+7. Provide option to automatically convert primitive types, but avoid converting ambiguous types (`Union`, `TypeVar`, etc). Handle `Optional` and `serdelicacy.OptionalProperty`
 8. Require no 3rd party dependencies; Python 3.8+
 
 ## Installation

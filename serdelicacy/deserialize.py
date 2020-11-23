@@ -30,11 +30,11 @@ from typing import (
 
 from .errors import DepthContainer, DeserializeError
 from .typedefs import (
+    MISSING,
     NO_RESULT,
-    UNDEFINED,
+    Missing,
     NamedTupleType,
     PossibleResult,
-    Undefined,
 )
 
 T = TypeVar("T")  # pylint: disable=invalid-name
@@ -99,7 +99,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     constructor: Type[T]
     depth: InitVar[List[DepthContainer]]
     convert_primitives: bool
-    key: Any = UNDEFINED
+    key: Any = MISSING
     new_depth: List[DepthContainer] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
@@ -169,7 +169,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             return self.constructor(
                 **{
                     name: Deserialize(
-                        obj=self.obj.get(name, UNDEFINED),
+                        obj=self.obj.get(name, MISSING),
                         constructor=_type,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
@@ -196,7 +196,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             return self.constructor(
                 **{
                     name: Deserialize(
-                        obj=self.obj.get(name, UNDEFINED),
+                        obj=self.obj.get(name, MISSING),
                         constructor=_type,
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
@@ -335,7 +335,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 )
             return {
                 name: Deserialize(
-                    obj=self.obj.get(name, UNDEFINED),
+                    obj=self.obj.get(name, MISSING),
                     constructor=_type,
                     depth=self.new_depth,
                     convert_primitives=self.convert_primitives,
@@ -367,15 +367,15 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         return NO_RESULT
 
     def _check_undefined(self) -> PossibleResult[T]:
-        """Checks if a result is UNDEFINED.
+        """Checks if a result is MISSING.
 
         This case is extremely rare / somewhat nonsensical, but is
         included here for completeness sake.
         """
-        if self.constructor == Undefined:
-            if not self.obj is UNDEFINED:
+        if self.constructor == Missing:
+            if not self.obj is MISSING:
                 raise DeserializeError(
-                    Undefined, self.obj, self.new_depth, self.key
+                    Missing, self.obj, self.new_depth, self.key
                 )
             return self.obj  # type: ignore
         return NO_RESULT
@@ -386,10 +386,10 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         If `self.convert_primitives` is `True`, tries to automatically
         convert primitive value to the specified type.
 
-        `None` and `UNDEFINED` are both considered "unconvertable"
+        `None` and `MISSING` are both considered "unconvertable"
         """
         if self.constructor in _PRIMITIVES:
-            if self.obj is UNDEFINED:
+            if self.obj is MISSING:
                 raise DeserializeError(
                     self.constructor, self.obj, self.new_depth, self.key
                 )
@@ -428,15 +428,15 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         if _is_union(self.constructor):
             args = get_args(self.constructor)
             is_optional = len(args) == 2 and type(None) in args
-            is_optional_property = len(args) == 2 and Undefined in args
+            is_optional_property = len(args) == 2 and Missing in args
             if is_optional and self.obj is None:
                 return None  # type: ignore
-            if is_optional_property and self.obj is UNDEFINED:
-                return UNDEFINED  # type: ignore
+            if is_optional_property and self.obj is MISSING:
+                return MISSING  # type: ignore
             for argument in args:
                 convert_primitives = self.convert_primitives and (
                     (is_optional and argument != type(None))
-                    or (is_optional_property and argument != Undefined)
+                    or (is_optional_property and argument != Missing)
                 )
                 try:
                     return Deserialize(
@@ -499,4 +499,4 @@ _PRIMITIVES = {str, int, float, bool}
 
 _ANY = {Any, object, InitVar}
 
-_UNION_PRIMITIVE_ALLOW_CONVERSION = {type(None), Undefined}
+_UNION_PRIMITIVE_ALLOW_CONVERSION = {type(None), Missing}

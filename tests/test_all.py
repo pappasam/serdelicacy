@@ -6,7 +6,7 @@ from typing import Dict, List, NamedTuple, Optional, Tuple, TypedDict, Union
 from hypothesis import given
 from hypothesis import strategies as st
 
-from serdelicacy import UNDEFINED, OptionalProperty, dump, load
+from serdelicacy import OptionalProperty, dump, is_missing, load
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 # pylint: disable=too-many-instance-attributes
@@ -102,7 +102,7 @@ def test_serde_big_data(big_data: dict):
     if "my_optional_str" in big_data:
         assert deserialized.my_optional_str == big_data["my_optional_str"]
     else:
-        assert deserialized.my_optional_str is UNDEFINED
+        assert is_missing(deserialized.my_optional_str)
     serialized = dump(deserialized)
     assert serialized == {
         "my_default": "default_value",

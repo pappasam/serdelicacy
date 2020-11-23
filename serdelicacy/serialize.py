@@ -3,14 +3,14 @@
 from dataclasses import asdict, is_dataclass
 from typing import Any, Mapping, Sequence
 
-from .typedefs import UNDEFINED, NamedTupleType
+from .typedefs import MISSING, NamedTupleType
 
 
 def _filter_keep(value: Any, keep_always: bool) -> bool:
     """Determine whether we should keep a value in serialized output."""
     if keep_always:
         return True
-    return value is not UNDEFINED
+    return value is not MISSING
 
 
 def dump(obj: Any, convert_undefined_to_none: bool = False) -> Any:
@@ -62,6 +62,6 @@ def dump(obj: Any, convert_undefined_to_none: bool = False) -> Any:
             for key, value in obj.items()
             if _filter_keep(value, convert_undefined_to_none)
         }
-    if convert_undefined_to_none and (obj is UNDEFINED):
+    if convert_undefined_to_none and (obj is MISSING):
         return None
     return obj

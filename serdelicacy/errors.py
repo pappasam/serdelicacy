@@ -2,7 +2,7 @@
 
 from typing import Any, List, NamedTuple, Type
 
-from .typedefs import UNDEFINED
+from .typedefs import MISSING
 
 
 class DepthContainer(NamedTuple):
@@ -49,7 +49,7 @@ class DeserializeError(SerdeError):
         ]
         if message_override:
             message = message_override
-        elif value_received is UNDEFINED and key is not UNDEFINED:
+        elif value_received is MISSING and key is not MISSING:
             message = f"missing required key {repr(key)}"
             depth_messages.pop()
         else:

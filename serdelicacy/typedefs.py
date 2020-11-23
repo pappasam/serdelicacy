@@ -1,7 +1,7 @@
 """Type definitions."""
 
 import enum
-from typing import Protocol, TypeVar, Union, runtime_checkable
+from typing import Any, Protocol, TypeVar, Union, runtime_checkable
 
 # pylint: disable=too-few-public-methods
 # pylint: disable=missing-function-docstring
@@ -9,10 +9,11 @@ from typing import Protocol, TypeVar, Union, runtime_checkable
 T = TypeVar("T")  # pylint: disable=invalid-name
 
 
-class Undefined(enum.Enum):
-    """Handles JavaScript/TypeScript `undefined` / optional properties.
+class Missing(enum.Enum):
+    """Handles JavaScript/TypeScript optional properties (missing JSON values).
 
-    TypeScript / JavaScript /  have 2 words that indicate something is missing:
+    TypeScript / JavaScript /  have 2 words that indicate something is
+    conceptually missing:
 
     - `undefined` == an attribute has not been defined
     - `null` == an attribute's value is `null`
@@ -27,9 +28,18 @@ class Undefined(enum.Enum):
         return False
 
 
-OptionalProperty = Union[Undefined, T]
+OptionalProperty = Union[Missing, T]
 
-UNDEFINED = Undefined.token
+MISSING = Missing.token
+
+
+def is_missing(value: Any) -> bool:
+    """Check whether a value is `MISSING`
+
+    Useful because it prevents users from needing to import MISSING
+    constant
+    """
+    return value is MISSING
 
 
 class NoResult(enum.Enum):
