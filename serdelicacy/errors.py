@@ -18,6 +18,34 @@ class SerdeError(Exception):
     """Root error for serdelicacy."""
 
 
+def _tc_enc(value: str, code: int = 32) -> str:
+    """Encode error message values with termiterminal colors.
+
+    See: <https://i.stack.imgur.com/9UVnC.png>
+
+    Also, see: <https://stackoverflow.com/a/61273717>
+
+    Some color options:
+
+    - 30: black
+    - 31: red
+    - 32: green
+    - 33: yellow
+    - 34: blue
+    - 35: magenta
+    - 36: cyan
+    - 37: white
+    """
+    return f"\u001b[{code}m{value}\u001b[0m".encode().decode("unicode_escape")
+
+
+_K_KEY = _tc_enc("key", 32)
+_K_VALUE = _tc_enc("value", 32)
+_K_TYPE_EXPECTED = _tc_enc("type_expected", 34)
+_K_OBJECT_RECEIVED = _tc_enc("object_received", 34)
+_K_ERROR = _tc_enc("error", 31)
+
+
 class DeserializeError(SerdeError):
     """Deserialization failure.
 
@@ -41,14 +69,14 @@ class DeserializeError(SerdeError):
         depth_messages = []
         for depth_item in depth:
             value = {
-                "key": repr(depth_item.key),
-                "value": {
-                    "type_expected": repr(depth_item.constructor),
-                    "object_received": repr(depth_item.value),
+                _K_KEY: repr(depth_item.key),
+                _K_VALUE: {
+                    _K_TYPE_EXPECTED: repr(depth_item.constructor),
+                    _K_OBJECT_RECEIVED: repr(depth_item.value),
                 },
             }
             if depth_item.key is MISSING:
-                del value["key"]
+                del value[_K_KEY]
             depth_messages.append(value)
 
         if message_override:
@@ -63,6 +91,8 @@ class DeserializeError(SerdeError):
                 + f"but received {repr(type(value_received))} "
                 + message_postfix
             )
-        depth_messages[-1]["error"] = message
+        depth_messages[-1][_K_ERROR] = message.strip()
         depth_str = json.dumps(depth_messages, indent=2)
-        super().__init__(f"{message}\n{depth_str}")
+        super().__init__(
+            f"{message}\n{depth_str}".encode().decode("unicode_escape")
+        )
