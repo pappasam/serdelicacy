@@ -3,7 +3,7 @@
 import json
 from dataclasses import dataclass
 from pprint import pprint
-from typing import List, TypeVar
+from typing import List, Literal, TypeVar
 
 import serdelicacy
 from serdelicacy import OptionalProperty
@@ -34,10 +34,9 @@ class Book:
     title: str
     category: List[str]
     second_author: OptionalProperty[str]
+    difficulty: Literal["easy", "medium", "hard"]
 
     def __post_init__(self) -> None:
-        # if self.second_author is UNDEFINED:
-        #     self.second_author = Person("John", "Doe")
 
         if len(self.category) < 2:
             raise ValueError("Must have at least 2 caregories")
@@ -54,6 +53,7 @@ print(loaded.isbn)
 print(loaded.title)
 print(type(loaded.author.firstname))
 print(loaded.second_author)
+print(loaded.difficulty)
 
 unloaded1 = serdelicacy.dump(loaded)
 pprint(unloaded1)

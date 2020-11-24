@@ -9,5 +9,6 @@
     "firstname": "Jane"
   },
   "title": "The Ultimate Database Study Guide",
-  "category": ["Non-Fiction", "Technology"]
+  "category": ["Non-Fiction", "Technology"],
+  "difficulty": "medium"
 }
