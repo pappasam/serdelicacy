@@ -19,30 +19,32 @@ class SerdeError(Exception):
 
 
 def _tc_enc(value: str, code: int = 32) -> str:
-    """Encode error message values with termiterminal colors.
+    """Encode error message values with terminal colors.
 
-    See: <https://i.stack.imgur.com/9UVnC.png>
+    See:
+        - <https://i.stack.imgur.com/9UVnC.png>
+        - <https://stackoverflow.com/a/61273717>
 
-    Also, see: <https://stackoverflow.com/a/61273717>
+    For Python's somewhat-poorly-documented encodings:
+        <https://docs.python.org/3/library/codecs.html#text-encodings>
 
     Some color options:
-
-    - 30: black
-    - 31: red
-    - 32: green
-    - 33: yellow
-    - 34: blue
-    - 35: magenta
-    - 36: cyan
-    - 37: white
+        - 30: black
+        - 31: red
+        - 32: green
+        - 33: yellow
+        - 34: blue
+        - 35: magenta
+        - 36: cyan
+        - 37: white
     """
-    return f"\u001b[{code}m{value}\u001b[0m".encode().decode("unicode_escape")
+    return f"\u001b[{code}m{value}\u001b[0m"
 
 
 _K_KEY = _tc_enc("key", 32)
 _K_VALUE = _tc_enc("value", 32)
-_K_TYPE_EXPECTED = _tc_enc("type_expected", 34)
-_K_OBJECT_RECEIVED = _tc_enc("object_received", 34)
+_K_TYPE = _tc_enc("type", 34)
+_K_INPUT = _tc_enc("input", 34)
 _K_ERROR = _tc_enc("error", 31)
 
 
@@ -71,8 +73,8 @@ class DeserializeError(SerdeError):
             value = {
                 _K_KEY: repr(depth_item.key),
                 _K_VALUE: {
-                    _K_TYPE_EXPECTED: repr(depth_item.constructor),
-                    _K_OBJECT_RECEIVED: repr(depth_item.value),
+                    _K_TYPE: repr(depth_item.constructor),
+                    _K_INPUT: repr(depth_item.value),
                 },
             }
             if depth_item.key is MISSING:
@@ -94,5 +96,5 @@ class DeserializeError(SerdeError):
         depth_messages[-1][_K_ERROR] = message.strip()
         depth_str = json.dumps(depth_messages, indent=2)
         super().__init__(
-            f"{message}\n{depth_str}".encode().decode("unicode_escape")
+            f"{message}\n{depth_str}".encode().decode("unicode-escape")
         )

@@ -42,6 +42,15 @@ def is_missing(value: Any) -> bool:
     return value is MISSING
 
 
+def get(value: Union[Missing, T], default: T) -> T:
+    """Return value unless it's MISSING, in which case return default.
+
+    Similar to `dict.get`, but operates on `OptionalProperty`, provides
+    no default for default, and is typesafe.
+    """
+    return default if value is MISSING else value  # type: ignore
+
+
 class NoResult(enum.Enum):
     """Special case type to indicate that a function returns no result.
 
