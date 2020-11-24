@@ -17,6 +17,7 @@ from typing import (
     Generic,
     Iterable,
     List,
+    Literal,
     Mapping,
     Sequence,
     Tuple,
@@ -117,6 +118,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         self.constructor_origin = origin if origin else self.constructor
         self.check_functions = (
             self._check_any,
+            self._check_literal,
             self._check_primitive,
             self._check_none,
             self._check_undefined,
@@ -420,6 +422,27 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         self.constructor, self.obj, self.new_depth, self.key
                     ) from error
             return self.obj
+        return NO_RESULT
+
+    def _check_literal(self) -> PossibleResult[T]:
+        """Check if result is a literal type.
+
+        If yes, validate and return, otherwise raise DeserializeError. Equality
+        check for literal documented here:
+            <https://www.python.org/dev/peps/pep-0586/#equivalence-of-two-literals>
+        """
+        if self.constructor_origin == Literal:
+            for arg in self.constructor_args:
+                # pylint: disable=unidiomatic-typecheck
+                if self.obj == arg and type(self.obj) == type(arg):
+                    return self.obj
+            raise DeserializeError(
+                self.constructor,
+                self.obj,
+                self.new_depth,
+                self.key,
+                message_postfix=f"with value {repr(self.obj)}",
+            )
         return NO_RESULT
 
     def _check_any(self) -> PossibleResult[T]:

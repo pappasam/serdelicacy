@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.13.0
+
+### Added
+
+- Support for deserialization of `typing.Literal`. Lets users to specify an allow-list for string / other input values, removing an entire category of annoying custom validation that users previously needed to write in `__post_init__`.
+
 ## 0.12.0
 
 ### Added
