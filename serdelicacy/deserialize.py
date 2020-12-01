@@ -9,7 +9,7 @@
 
 import inspect
 import itertools
-from dataclasses import InitVar, dataclass, field, is_dataclass
+from dataclasses import InitVar, dataclass, field, fields, is_dataclass
 from typing import _TypedDictMeta  # type: ignore
 from typing import (
     Any,
@@ -19,6 +19,8 @@ from typing import (
     List,
     Literal,
     Mapping,
+    NoReturn,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -90,6 +92,11 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     :attr depth: keeps track of recursive position. Supremely helpful for
         error messages, since it shows the user exactly where the parsing
         fails.
+    :attr dataclass_validate: argument provided only by upstream dataclasses.
+        An internal implementation detail, but interesting nonetheless.
+        Function either returns `True` on positive validation / `False` on
+        non-validation, or returns nothing at all and instead relies on the
+        raising of exceptions to indicate whether validation passed for failed.
 
     NOTE: we use typing.get_type_hints because it correctly handles
     ForwardRefs, translating string references into their correct type in
@@ -101,6 +108,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     depth: InitVar[List[DepthContainer]]
     convert_primitives: bool
     key: Any = field(default=MISSING)
+    dataclass_validate: Optional[
+        Union[Callable[[Any], NoReturn], Callable[[Any], bool]]
+    ] = field(default=None)
     new_depth: List[DepthContainer] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
@@ -134,14 +144,17 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         )
 
     def run(self) -> T:
-        """Run each function in the iterator."""
+        """Run each function in the iterator.
+
+        Validate dataclass fields where specified by the user.
+        """
         try:
-            return next(
+            result = next(
                 itertools.dropwhile(
                     _is_no_result,
                     (function() for function in self.check_functions),
                 )
-            )  # type: ignore
+            )
         except StopIteration:
             # pylint: disable=raise-missing-from
             raise DeserializeError(
@@ -161,6 +174,30 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     message_override=str(error),
                 ) from error
             raise
+        if not self.dataclass_validate is None:
+            try:
+                validation_result = self.dataclass_validate(result)
+            except Exception as error:
+                if not isinstance(error, DeserializeError):
+                    raise DeserializeError(
+                        self.constructor,
+                        self.obj,
+                        self.new_depth,
+                        self.key,
+                        message_override=str(error),
+                    ) from error
+                raise
+            if validation_result is False:
+                raise DeserializeError(
+                    self.constructor,
+                    self.obj,
+                    self.new_depth,
+                    self.key,
+                    message_override=(
+                        f"{repr(self.dataclass_validate)} returned False"
+                    ),
+                )
+        return result  # type: ignore
 
     def _check_dataclass(self) -> PossibleResult[T]:
         """Checks whether a result is a dataclass."""
@@ -170,6 +207,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     Mapping, self.obj, self.new_depth, self.key
                 )
             parameters = inspect.signature(self.constructor).parameters
+            field_meta = {f.name: f.metadata for f in fields(self.constructor)}
             return self.constructor(
                 **{
                     name: Deserialize(
@@ -178,6 +216,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         depth=self.new_depth,
                         convert_primitives=self.convert_primitives,
                         key=name,
+                        dataclass_validate=field_meta[name].get("validate"),
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                     if not (

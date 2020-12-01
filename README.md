@@ -191,7 +191,10 @@ Notice how we have the following features:
 2. For missing properties / dictionary keys (for example, `Book.tags`), we can set a default value in our dataclass using standard Python and `serdelicacy` adds the default value to our structure
 3. For missing properties without default values, serdelicacy intelligently omits them when re-serializing the result. There is also an option to `serdelicacy.load` that allows you to convert missing values to `None` and keep the keys in the output. For all other desired default values, just use `dataclasses.field`; no need to re-invent the wheel!
 
-What about additional validation, you may ask? Again, just use dataclasses! Assume that, for some reason, no book can possibly be published before 1930, and that a book published before 1930 invalidates all data. No problem, just use the standard method `__post_init__` on the relevant dataclass!
+What about additional validation, you may ask? Again, just use dataclasses! Assume that, for some reason, no book can possibly be published before 1930, and that a book published before 1930 invalidates all data. No problem, you can do 1 of 2 things:
+
+1. Just use the standard method `__post_init__` on the relevant dataclass!
+2. Use `dataclasses.field` and put a function in the dictionary's "validate" key. The provided function should either return `True` on positive validation / `False` on non-validation, or nothing at all and instead rely on the raising of exceptions to indicate whether validation passed for failed.
 
 ```python
 from dataclasses import dataclass, field
@@ -231,7 +234,7 @@ LIBRARIES = [
 @dataclass
 class Book:
     author: Optional[str]
-    title: str
+    title: str = field(metadata={"validate": str.istitle})
     year: OptionalProperty[int]
     tags: List[str] = field(default_factory=list)
 
@@ -249,7 +252,7 @@ class Library:
 LIBRARIES_LOADED = serdelicacy.load(LIBRARIES, List[Library])
 ```
 
-Running this script should give you a clear error message containing a description of the error you received, along with each intermediate object in the recursive chain to help you debug further. This structure makes it incredibly easy to see not only what your error is, but where it occurred in both the data `serdelicacy.load` receives but also in the types `serdelicacy.load` uses to attempt to deserialize the received data.
+Running this script should give you a clear error message containing a description of the first error encountered, along with each intermediate object in its recursive chain to help you debug further. This structure makes it incredibly easy to see not only what your error is, but where it occurred in both the data `serdelicacy.load` receives but also in the types `serdelicacy.load` uses to attempt to deserialize the received data.
 
 In serde, when working with resources external to your system, errors are inevitable. These error messages should hopefully make debugging your errors less annoying.
 
