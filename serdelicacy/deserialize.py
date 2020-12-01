@@ -1,11 +1,4 @@
-"""Recursively deserialize a Python Sequence, Mapping, or primitive into a.
-
-* dataclass
-* NamedTuple
-* list
-* tuple
-* other supported structure
-"""
+"""Load loosely-typed objects into strongly-typed containers."""
 
 import inspect
 import itertools
@@ -52,7 +45,6 @@ def load(
     obj: Any,
     constructor: Type[T],
     typesafe_constructor: bool = True,
-    convert_primitives: bool = True,
 ) -> T:
     """Deserialize an object into its constructor.
 
@@ -60,12 +52,6 @@ def load(
     :param constructor: the type into which we want serialize 'obj'
     :param typesafe_constructor: makes sure that the provided top-level
         constructor is not one of several "unsafe" types
-    :param convert_primitives: automatically convert primitive values, if
-        encountered. Even if enabled here, this becomes automatically disabled,
-        recursively downward, if an ambiguous container type is encountered. At
-        this time, `Union` is considered ambiguous. Note: according to the type
-        system, `Optional` is considered a `Union` type, but this special case
-        does not disable automatic conversion (special-cased code handles).
 
     :returns: an instance of your constructor, recursively filled
 
@@ -81,7 +67,6 @@ def load(
         obj=obj,
         constructor=constructor,
         depth=[],
-        convert_primitives=convert_primitives,
     ).run()
 
 
@@ -106,11 +91,11 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     obj: Any
     constructor: Type[T]
     depth: InitVar[List[DepthContainer]]
-    convert_primitives: bool
     key: Any = field(default=MISSING)
     dataclass_validate: Optional[
         Union[Callable[[Any], NoReturn], Callable[[Any], bool]]
     ] = field(default=None)
+    dataclass_load: Optional[Callable[[Any], T]] = field(default=None)
     new_depth: List[DepthContainer] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
@@ -141,6 +126,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             self._check_initvar_instance,
             self._check_union,
             self._check_typevar,
+            self._check_isinstance,
         )
 
     def run(self) -> T:
@@ -148,6 +134,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
 
         Validate dataclass fields where specified by the user.
         """
+        self._manual_load()
         try:
             result = next(
                 itertools.dropwhile(
@@ -174,30 +161,52 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     message_override=str(error),
                 ) from error
             raise
-        if not self.dataclass_validate is None:
-            try:
-                validation_result = self.dataclass_validate(result)
-            except Exception as error:
-                if not isinstance(error, DeserializeError):
-                    raise DeserializeError(
-                        self.constructor,
-                        self.obj,
-                        self.new_depth,
-                        self.key,
-                        message_override=str(error),
-                    ) from error
-                raise
-            if validation_result is False:
+        self._validate(result)
+        return result  # type: ignore
+
+    def _validate(self, result: Any) -> None:
+        """Verify that a result is correct."""
+        if self.dataclass_validate is None:
+            return
+        try:
+            validation_result = self.dataclass_validate(result)
+        except Exception as error:
+            if not isinstance(error, DeserializeError):
                 raise DeserializeError(
                     self.constructor,
                     self.obj,
                     self.new_depth,
                     self.key,
-                    message_override=(
-                        f"{repr(self.dataclass_validate)} returned False"
-                    ),
-                )
-        return result  # type: ignore
+                    message_override=str(error),
+                ) from error
+            raise
+        if validation_result is False:
+            raise DeserializeError(
+                self.constructor,
+                self.obj,
+                self.new_depth,
+                self.key,
+                message_override=(
+                    f"{repr(self.dataclass_validate)} returned False"
+                ),
+            )
+
+    def _manual_load(self) -> None:
+        """Manually override `self.obj` if dataclass_load is defined."""
+        if self.dataclass_load is None:
+            return
+        try:
+            self.obj = self.dataclass_load(self.obj)
+        except Exception as error:
+            if not isinstance(error, DeserializeError):
+                raise DeserializeError(
+                    self.constructor,
+                    self.obj,
+                    self.new_depth,
+                    self.key,
+                    message_override=str(error),
+                ) from error
+            raise
 
     def _check_dataclass(self) -> PossibleResult[T]:
         """Checks whether a result is a dataclass."""
@@ -214,9 +223,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         obj=self.obj.get(name, MISSING),
                         constructor=_type,
                         depth=self.new_depth,
-                        convert_primitives=self.convert_primitives,
                         key=name,
                         dataclass_validate=field_meta[name].get("validate"),
+                        dataclass_load=field_meta[name].get("load"),
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                     if not (
@@ -242,7 +251,6 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         obj=self.obj.get(name, MISSING),
                         constructor=_type,
                         depth=self.new_depth,
-                        convert_primitives=self.convert_primitives,
                         key=name,
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
@@ -275,7 +283,6 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         obj=value,
                         constructor=self.constructor_args[0],
                         depth=self.new_depth,
-                        convert_primitives=self.convert_primitives,
                     ).run()
                     for value in self.obj
                 )  # type: ignore
@@ -292,7 +299,6 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     obj=self.obj[i],
                     constructor=arg,
                     depth=self.new_depth,
-                    convert_primitives=self.convert_primitives,
                 ).run()
                 for i, arg in enumerate(self.constructor_args)
             )  # type: ignore
@@ -329,7 +335,6 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     obj=value,
                     constructor=_arg,
                     depth=self.new_depth,
-                    convert_primitives=self.convert_primitives,
                 ).run()
                 for value in self.obj
             )  # type: ignore
@@ -360,14 +365,12 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         obj=key,
                         constructor=_tpkey,
                         depth=self.new_depth,
-                        convert_primitives=self.convert_primitives,
                         key=key,
                     )
                     .run(): Deserialize(
                         obj=value,
                         constructor=_tpvalue,
                         depth=self.new_depth,
-                        convert_primitives=self.convert_primitives,
                         key=key,
                     )
                     .run()
@@ -390,7 +393,6 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     obj=self.obj.get(name, MISSING),
                     constructor=_type,
                     depth=self.new_depth,
-                    convert_primitives=self.convert_primitives,
                     key=name,
                 ).run()
                 for name, _type in get_type_hints(self.constructor).items()
@@ -404,7 +406,6 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 obj=self.obj,
                 constructor=self.constructor.type,  # type: ignore
                 depth=self.new_depth,
-                convert_primitives=self.convert_primitives,
             ).run()
         return NO_RESULT
 
@@ -433,33 +434,12 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         return NO_RESULT
 
     def _check_primitive(self) -> PossibleResult[T]:
-        """Check if result is a primitive.
-
-        If `self.convert_primitives` is `True`, tries to automatically
-        convert primitive value to the specified type.
-
-        `None` and `MISSING` are both considered "unconvertable"
-        """
+        """Check if result is a primitive."""
         if self.constructor in _PRIMITIVES:
-            if self.obj is MISSING:
-                raise DeserializeError(
-                    self.constructor, self.obj, self.new_depth, self.key
-                )
-            if self.obj is None:
-                raise DeserializeError(
-                    self.constructor, self.obj, self.new_depth, self.key
-                )
             if not isinstance(self.obj, self.constructor):
-                if not self.convert_primitives:
-                    raise DeserializeError(
-                        self.constructor, self.obj, self.new_depth, self.key
-                    )
-                try:
-                    return self.constructor(self.obj)  # type: ignore
-                except (ValueError, TypeError) as error:
-                    raise DeserializeError(
-                        self.constructor, self.obj, self.new_depth, self.key
-                    ) from error
+                raise DeserializeError(
+                    self.constructor, self.obj, self.new_depth, self.key
+                )
             return self.obj
         return NO_RESULT
 
@@ -491,13 +471,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         return NO_RESULT
 
     def _check_union(self) -> PossibleResult[T]:
-        """Check if result is a Union.
-
-        Encountering this type usually recursively disables
-        `convert_primitives` for items found within the `Union`. The
-        exception are `Optional` types, which are really `Union[Any,
-        None]` and common enough for us to find a workaround.
-        """
+        """Check if result is a Union."""
         if _is_union(self.constructor):
             args = get_args(self.constructor)
             is_optional = len(args) == 2 and type(None) in args
@@ -507,16 +481,11 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
             if is_optional_property and self.obj is MISSING:
                 return MISSING  # type: ignore
             for argument in args:
-                convert_primitives = self.convert_primitives and (
-                    (is_optional and argument != type(None))
-                    or (is_optional_property and argument != Missing)
-                )
                 try:
                     return Deserialize(
                         obj=self.obj,
                         constructor=argument,
                         depth=self.new_depth,
-                        convert_primitives=convert_primitives,
                     ).run()
                 except DeserializeError:
                     pass
@@ -536,9 +505,20 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                     else object
                 ),
                 depth=self.new_depth,
-                convert_primitives=self.convert_primitives,
             ).run()
         return NO_RESULT
+
+    def _check_isinstance(self) -> PossibleResult[T]:
+        """Final check to see if the result is an instance of its type.
+
+        Some types aren't checkable with `isinstance`, but this should
+        catch most extra cases outside the typing library.
+        """
+        try:
+            is_exact_match = isinstance(self.obj, self.constructor)
+        except Exception:  # pylint: disable=broad-except
+            return NO_RESULT
+        return self.obj if is_exact_match else NO_RESULT
 
 
 def _is_initvar_instance(typeval: Type) -> bool:
@@ -571,5 +551,3 @@ _TYPE_UNSAFE_CHECKS = (
 _PRIMITIVES = {str, int, float, bool}
 
 _ANY = {Any, object, InitVar}
-
-_UNION_PRIMITIVE_ALLOW_CONVERSION = {type(None), Missing}
