@@ -13,7 +13,7 @@ include_trailing_comma = true
 
 [tool.poetry]
 name = "serdelicacy"
-version = "0.13.0"
+version = "0.14.0"
 description = "Serialize/deserialize Python objects from/to typed structures."
 license = "MIT"
 readme = "README.md"

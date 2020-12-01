@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.14.0
+
+### Added
+
+- Major validation improvement! Support for dataclass attribute validation using the `metadata` parameter to `dataclasses.field`, like `dataclasses.field(metadata={"validate": str.istitle})`. The function passed as the mapping value should either return `True` on positive validation / `False` on non-validation, or return nothing at all and instead rely on the raising of exceptions to indicate whether validation passed for failed.
+
 ## 0.13.0
 
 ### Added
