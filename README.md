@@ -76,6 +76,7 @@ As suggested by the Python [dataclasses.field documentation](https://docs.python
 - `validate`: `Callable[[Any], NoReturn], Callable[[Any], bool]`: a function that either a) returns a boolean where False indicates failed validation or b) nothing, but raises Python exceptions on validation failure. Is executed as the final step of a value's load, after all transformations have been completed. By default, this is a function that does nothing.
 - `transform_load`: `Callable[[Any], Any]`. This transformation is executed before any other loading takes place. By default, this is an [identity function](https://en.wikipedia.org/wiki/Identity_function)
 - `transform_postload`: this should be `Callable[[T], T]]`, where `T` is the type of the field. This transformation is executed after all recursive loading takes place as the final step before the value is returned for upstream processing. By default, this is an [identity function](https://en.wikipedia.org/wiki/Identity_function)
+- `transform_dump`: this should be `Callable[[T], Any]]`, where `T` is the type of the field. This function is executed before a value is recursively serialized. By default, this is an [identity function](https://en.wikipedia.org/wiki/Identity_function)
 
 Finally, you may not need to use these tools initially, but if you have strict validation or transformation requirements on your project, you'll be extremely happy they're here
 
