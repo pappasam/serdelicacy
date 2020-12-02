@@ -28,6 +28,10 @@ class Person:
 
 
 def _is_title(s: str) -> None:
+    """Validate that a string is a title.
+
+    Provide a clear error message!
+    """
     if not s.istitle():
         raise ValueError("string is not title case")
 
@@ -43,7 +47,11 @@ class Book:
     # writing a custom function.
     category: List[str] = field(metadata={"validate": (lambda x: len(x) >= 2)})
     second_author: OptionalProperty[str]
-    difficulty: Literal["easy", "medium", "hard"]
+    # transform converts to upper, and dump converts to completely uppercase
+    # NOTE: literal type already performs validation
+    difficulty: Literal["easy", "medium", "hard"] = field(
+        metadata={"transform_load": str.lower, "transform_dump": str.upper}
+    )
 
 
 with open("book.json", "r") as infile:
@@ -53,18 +61,24 @@ with open("book.json", "r") as infile:
 loaded = serdelicacy.load(raw_data, Book)
 
 
-print(loaded.isbn)
-print(loaded.title)
-print(type(loaded.author.firstname))
-print(loaded.second_author)
-print(loaded.difficulty)
+print("title has been validated:", loaded.title)
+print("type of first name:", type(loaded.author.firstname))
+print("second author is missing:", loaded.second_author)
+print("Difficulty is lowercase:", loaded.difficulty)
 
 unloaded1 = serdelicacy.dump(loaded)
+
+print("Notice how `difficulty` is uppercase? Thanks `dump`!")
 pprint(unloaded1)
 
 
-if loaded.second_author:
-    print("hello")
+if not loaded.second_author:
+    print("Notice MISSING values are Falsey? I get printed because of this :)")
 
-unloaded2 = serdelicacy.dump(loaded, convert_undefined_to_none=True)
+unloaded2 = serdelicacy.dump(loaded, convert_missing_to_none=True)
+print("Notice how `second_author` now exists, with value None?")
 pprint(unloaded2)
+
+print("Let's break something to see an error message!")
+raw_data["title"] = "I am not title case, so I'll throw an error"
+serdelicacy.load(raw_data, Book)

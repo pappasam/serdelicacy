@@ -7,9 +7,7 @@
 
 Serialize (`serdelicacy.dump`) and deserialize (`serdelicacy.load`) from/to strongly-typed, native Python data structures.
 
-## Motivation
-
-No typing-focused [serde](https://en.wikipedia.org/wiki/Serialization) library in Python satisfies me. Call me needy, but when I must translate loosely-typed data structures (like `list` and `dict`) to strongly-typed data structures (like `NamedTuple` and `dataclasses.dataclass`), I want the following capabilities:
+## Features
 
 1. Effortless deserialization of unstructured Python types into structured, type-hinted Python types (`dataclasses.dataclass`, `typing.NamedTuple`)
 2. Effortless serialization of structured, type-hinted Python objects into unstructured Python types (eg, the reverse)
@@ -17,7 +15,7 @@ No typing-focused [serde](https://en.wikipedia.org/wiki/Serialization) library i
 4. No inherited, non-standard types. dataclasses, NamedTuples, and other standard Python types are bread and butter
 5. Editor support: I like my autocompletion, so I jump through lots of hoops to make this library compatible with Jedi
 6. Handle [optional properties](https://www.typescriptlang.org/docs/handbook/interfaces.html#optional-properties) with a domain-specific `serdelicacy.OptionalProperty`
-7. Provide option to automatically convert primitive types, but avoid converting ambiguous types (`Union`, `TypeVar`, etc). Handle `Optional` and `serdelicacy.OptionalProperty`
+7. Enable customization through sophisticated validation, deserialization overrides, and serialization overrides for dataclasses.
 8. Require no 3rd party dependencies; Python 3.8+
 
 ## Installation
@@ -256,7 +254,48 @@ Running this script should give you a clear error message containing a descripti
 
 In serde, when working with resources external to your system, errors are inevitable. These error messages should hopefully make debugging your errors less annoying.
 
-## Frequent issues
+## Validation / transformation for dataclasses
+
+The following customization options are available for validation, deserialization overrides, and serialization overrides. `dataclasses` customization relies on the `metadata` argument to the `dataclasses.field` function:
+
+```python
+from dataclasses import dataclass, field
+import serdelicacy
+
+def _is_long_enough(value) -> None:
+    if len(value) < 4:
+        raise ValueError(f"'{value}' is not enough characters")
+
+VALUE = {"firstname": "richard", "lastname": "spencerson"}
+
+@dataclass
+class Person:
+    firstname: str = field(
+        metadata={
+            "validate": _is_long_enough,
+            "transform_load": str.title,
+        }
+    )
+    lastname: str = field(
+        metadata={
+            "validate": _is_long_enough,
+            "transform_load": str.title,
+            "transform_dump": str.upper,
+        }
+    )
+
+print(serdelicacy.load(VALUE, Person))
+```
+
+Here are the following `metadata` keys that `serdelicacy` considers, if present:
+
+- `"validate"`: if provided, this should be `Callable[[Any], NoReturn], Callable[[Any], bool]`: a function that either a) returns a boolean where False indicates failed validation or b) nothing, but raises Python exceptions on validation failure. Is executed as the final step of a value's load, after all transformations have been completed.
+- `"transform_load"`: if provided, this should be, at minimum, `Callable[[Any], Any]`. This transformation is executed before any other loading takes place.
+- `"transform_postload"`: if provided, this should be `Callable[[T], T]]`, where `T` is the type of the field. This transformation is executed after all recursive loading takes place as the final step before the value is returned for upstream processing.
+
+You may not need to use these tools initially, but if you have strict validation or transformation requirements on your project, you'll be extremely happy they're here!
+
+## FAQ
 
 ### My JSON keys contain whitespace, etc
 
@@ -301,7 +340,7 @@ This prints the following to the console.
 ```text
 Loaded data:
 [{'normal': 2, 'weird, key': 1},
- {'normal': 3, 'weird, key': <Undefined property>}]
+ {'normal': 3, 'weird, key': <Missing property>}]
 Re-serialized data:
 [{'normal': 2, 'weird, key': 1}, {'normal': 3}]
 ```

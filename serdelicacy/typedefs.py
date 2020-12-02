@@ -10,19 +10,21 @@ T = TypeVar("T")  # pylint: disable=invalid-name
 
 
 class Missing(enum.Enum):
-    """Handles JavaScript/TypeScript optional properties (missing JSON values).
+    """Handles missing JSON values.
 
     TypeScript / JavaScript /  have 2 words that indicate something is
     conceptually missing:
 
-    - `undefined` == an attribute has not been defined
-    - `null` == an attribute's value is `null`
+    - `undefined` == an attribute has not been defined. This concept is
+        represented by this class
+    - `null` == an attribute's value is `null`. This concept is represented by
+        the Python value `None`.
     """
 
     token = 0
 
     def __repr__(self) -> str:
-        return "<Undefined property>"
+        return "<Missing property>"
 
     def __bool__(self) -> bool:
         return False
