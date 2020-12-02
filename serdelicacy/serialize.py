@@ -21,7 +21,7 @@ def _identity(value: Any) -> Any:
 def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
     """Serialize the object into a less-typed form.
 
-    If deserializing a dataclass and `dump` metadata exists in a
+    If serializing a dataclass and `transform_dump` metadata exists in a
     `dataclasses.field`, its value is assumed to be function whose result is
     serialized before being passed recursively down the chain.
 
@@ -45,7 +45,8 @@ def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
     # pylint: disable=too-many-return-statements
     if is_dataclass(obj):
         custom_dump = {
-            f.name: f.metadata.get("dump", _identity) for f in fields(obj)
+            f.name: f.metadata.get("transform_dump", _identity)
+            for f in fields(obj)
         }
         return {
             key: dump(__value_converted, convert_missing_to_none)

@@ -72,7 +72,7 @@ def load(
 
 @dataclass
 class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
-    """Deserialize the type.
+    """Deserialize an object into a more-strongly-typed form.
 
     :attr depth: keeps track of recursive position. Supremely helpful for
         error messages, since it shows the user exactly where the parsing
@@ -82,10 +82,20 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         Function either returns `True` on positive validation / `False` on
         non-validation, or returns nothing at all and instead relies on the
         raising of exceptions to indicate whether validation passed for failed.
+    :attr dataclass_transform_load: if deserializing a dataclass and
+        `transform_load` metadata exists in a `dataclasses.field`, its value is
+        assumed to be function whose result is evaluated on an object before
+        the object is recursively examined.
+    :attr dataclass_transform_postload: if deserializing a dataclass and
+        `transform_postload` metadata exists in a `dataclasses.field`, its
+        value is assumed to be function whose result is evaluated on an object
+        after the object has been recursively examined. When possible, the
+        `transform_load` should be preferred over `transform_postload`, but
+        there are situations where `transform_postload` is useful.
 
-    NOTE: we use typing.get_type_hints because it correctly handles
-    ForwardRefs, translating string references into their correct type in
-    strange and mysterious ways.
+    NOTE: throughout this class, we use typing.get_type_hints because it
+    correctly handles ForwardRefs, translating string references into their
+    correct type in strange and mysterious ways.
     """
 
     obj: Any
@@ -95,7 +105,12 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     dataclass_validate: Optional[
         Union[Callable[[Any], NoReturn], Callable[[Any], bool]]
     ] = field(default=None)
-    dataclass_load: Optional[Callable[[Any], T]] = field(default=None)
+    dataclass_transform_load: Optional[Callable[[Any], Any]] = field(
+        default=None
+    )
+    dataclass_transform_postload: Optional[Callable[[T], T]] = field(
+        default=None
+    )
     new_depth: List[DepthContainer] = field(init=False)
     constructor_args: Tuple[Type, ...] = field(init=False)
     constructor_origin: Type = field(init=False)
@@ -134,9 +149,9 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
 
         Validate dataclass fields where specified by the user.
         """
-        self._manual_load()
+        self._transform_load()
         try:
-            result = next(
+            result: T = next(  # type: ignore
                 itertools.dropwhile(
                     _is_no_result,
                     (function() for function in self.check_functions),
@@ -162,7 +177,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 ) from error
             raise
         self._validate(result)
-        return result  # type: ignore
+        return self._transform_postload(result)
 
     def _validate(self, result: Any) -> None:
         """Verify that a result is correct."""
@@ -191,12 +206,29 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 ),
             )
 
-    def _manual_load(self) -> None:
-        """Manually override `self.obj` if dataclass_load is defined."""
-        if self.dataclass_load is None:
+    def _transform_load(self) -> None:
+        """Modify `self.obj` inplace if dataclass_transform is defined."""
+        if self.dataclass_transform_load is None:
             return
         try:
-            self.obj = self.dataclass_load(self.obj)
+            self.obj = self.dataclass_transform_load(self.obj)
+        except Exception as error:
+            if not isinstance(error, DeserializeError):
+                raise DeserializeError(
+                    self.constructor,
+                    self.obj,
+                    self.new_depth,
+                    self.key,
+                    message_override=str(error),
+                ) from error
+            raise
+
+    def _transform_postload(self, result: T) -> T:
+        """Modify result if dataclass_transform_postload is defined."""
+        if self.dataclass_transform_postload is None:
+            return result
+        try:
+            return self.dataclass_transform_postload(result)
         except Exception as error:
             if not isinstance(error, DeserializeError):
                 raise DeserializeError(
@@ -225,7 +257,12 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                         depth=self.new_depth,
                         key=name,
                         dataclass_validate=field_meta[name].get("validate"),
-                        dataclass_load=field_meta[name].get("load"),
+                        dataclass_transform_load=field_meta[name].get(
+                            "transform_load"
+                        ),
+                        dataclass_transform_postload=field_meta[name].get(
+                            "transform_postload"
+                        ),
                     ).run()
                     for name, _type in get_type_hints(self.constructor).items()
                     if not (
