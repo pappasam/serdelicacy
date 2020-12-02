@@ -6,7 +6,7 @@ from pprint import pprint
 from typing import List, Literal, TypeVar
 
 import serdelicacy
-from serdelicacy import OptionalProperty
+from serdelicacy import OptionalProperty, Override
 
 # pylint: disable=missing-class-docstring
 # pylint: disable=invalid-name
@@ -16,7 +16,9 @@ T = TypeVar("T")
 
 @dataclass
 class Person:
-    firstname: str = field(metadata={"validate": str.istitle})
+    firstname: str = field(
+        metadata={"serdelicacy": Override(validate=str.istitle)}
+    )
     lastname: str
 
     def __post_init__(self):
@@ -42,15 +44,21 @@ class Book:
     author: Person
     editor: Person
     # note: this validation has a clear error message.
-    title: str = field(metadata={"validate": _is_title})
+    title: str = field(metadata={"serdelicacy": Override(validate=_is_title)})
     # note: this validation has a horrible error message. Might be worth
     # writing a custom function.
-    category: List[str] = field(metadata={"validate": (lambda x: len(x) >= 2)})
+    category: List[str] = field(
+        metadata={"serdelicacy": Override(validate=(lambda x: len(x) >= 2))}
+    )
     second_author: OptionalProperty[str]
     # transform converts to upper, and dump converts to completely uppercase
     # NOTE: literal type already performs validation
     difficulty: Literal["easy", "medium", "hard"] = field(
-        metadata={"transform_load": str.lower, "transform_dump": str.upper}
+        metadata={
+            "serdelicacy": Override(
+                transform_load=str.lower, transform_dump=str.upper
+            )
+        }
     )
 
 
