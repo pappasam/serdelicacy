@@ -3,6 +3,7 @@
 from dataclasses import asdict, fields, is_dataclass
 from typing import Any, Mapping, Sequence
 
+from .overrides import get_override
 from .typedefs import MISSING, NamedTupleType
 
 
@@ -45,14 +46,14 @@ def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
     # pylint: disable=too-many-return-statements
     if is_dataclass(obj):
         custom_dump = {
-            f.name: f.metadata.get("transform_dump", _identity)
+            f.name: get_override(f.metadata.get("serdelicacy"))
             for f in fields(obj)
         }
         return {
             key: dump(__value_converted, convert_missing_to_none)
             for key, value in asdict(obj).items()
             if _filter_keep(
-                (__value_converted := custom_dump[key](value)),
+                (__value_converted := custom_dump[key].transform_dump(value)),
                 convert_missing_to_none,
             )
         }

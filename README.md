@@ -30,237 +30,17 @@ poetry add serdelicacy
 
 ## Usage
 
-See [examples folder](https://github.com/pappasam/serdelicacy/tree/master/example) if you'd like to get your hands dirty. Otherwise, keep reading for a complete, real-world example.
-
-### Example: Libraries and Books
-
-Assume that you receive a `JSON` list of libraries containing each library's name and a list of each library's books.
-
-```json
-[
-  {
-    "name": "Clark County Library",
-    "books": [
-      {
-        "title": "Hello, World!",
-        "author": "Susy Smith",
-        "year": 1929,
-        "tags": ["boring"]
-      },
-      {
-        "title": "The great showman",
-        "author": "Beth John"
-      },
-      {
-        "title": "My favorite pony",
-        "author": null
-      }
-    ]
-  },
-  {
-    "name": "Only 1 book here",
-    "books": [
-      {
-        "title": "The great fun time",
-        "author": "Smitty",
-        "year": 1950,
-        "tags": ["swell"]
-      }
-    ]
-  }
-]
-```
-
-Now you want to ingest this document into Python. Your first step is probably to deserialize the JSON string (or file) into Python data structures.
-
-```python
-import json
-from pprint import pprint
-
-with open("libraries.json", "r") as infile:
-    libraries_raw = json.load(infile)
-
-pprint(libraries_raw)
-print(type(libraries_raw))
-print(type(libraries_raw[0]))
-```
-
-Assuming the JSON is read from a file called `libraries.py`, the preceding script will print:
-
-```text
-[{'books': [{'author': 'Susy Smith',
-             'tags': ['boring'],
-             'title': 'Hello, World!',
-             'year': 1929},
-            {'author': 'Beth John', 'title': 'The great showman'},
-            {'author': None, 'title': 'My favorite pony'}],
-  'name': 'Clark County Library'},
- {'books': [{'author': 'Smitty',
-             'tags': ['swell'],
-             'title': 'The great fun time',
-             'year': 1950}],
-  'name': 'Only 1 book here'}]
-<class 'list'>
-<class 'dict'>
-```
-
-Some observations:
-
-1. Python's native `json` module deserializes the JSON string / document into Python's primitive (or primitive-like) types
-2. `null` is translated to Python's `None`
-3. The first list element is a dictionary. So Python appears to have translated the JSON into a list of dictionaries.
-4. There is little inherent structure to the Python objects deserialized by the JSON module. By this, I mean that we have no way of knowing whether the dictionaries contain keys that we expect or are structured improperly. Should books also have an `"isbn"` field? Does code we write that uses `libraries_raw` expect an `"isbn"` field? What happens if there are missing tags?
-
-The first 3 items are merely facts; `serdelicacy` accepts these facts and builds on them. The 4th item in this list is THE problem that `serdelicacy` is designed to solve. If we take the above Python dictionary and associate it with a Python variable named `LIBRARIES`, we can define a strongly-typed Python container that `serdelicacy` can use to ingest `LIBRARIES`.
-
-```python
-from dataclasses import dataclass, field
-from pprint import pprint
-from typing import List, Optional
-
-import serdelicacy
-from serdelicacy import OptionalProperty
-
-[
-    {
-        "books": [
-            {
-                "author": "Susy Smith",
-                "tags": ["boring"],
-                "title": "Hello, World!",
-                "year": 1929,
-            },
-            {"author": "Beth John", "title": "The great showman"},
-            {"author": None, "title": "My favorite pony"},
-        ],
-        "name": "Clark County Library",
-    },
-    {
-        "books": [
-            {
-                "author": "Smitty",
-                "tags": ["swell"],
-                "title": "The great fun time",
-                "year": 1950,
-            }
-        ],
-        "name": "Only 1 book here",
-    },
-]
-
-@dataclass
-class Book:
-    author: Optional[str]
-    title: str
-    year: OptionalProperty[int]
-    tags: List[str] = field(default_factory=list)
-
-@dataclass
-class Library:
-    books: List[Book]
-    name: str
-
-LIBRARIES_LOADED = serdelicacy.load(LIBRARIES, List[Library])
-print(LIBRARIES_LOADED[0].name)
-print(LIBRARIES_LOADED[0].books[1].author)
-pprint(serdelicacy.dump(LIBRARIES_LOADED))
-```
-
-Running the above script, we get the following output to the terminal:
-
-```text
-[{'books': [{'author': 'Susy Smith',
-             'tags': ['boring'],
-             'title': 'Hello, World!',
-             'year': 1929},
-            {'author': 'Beth John', 'tags': [], 'title': 'The great showman'},
-            {'author': None, 'tags': [], 'title': 'My favorite pony'}],
-  'name': 'Clark County Library'},
- {'books': [{'author': 'Smitty',
-             'tags': ['swell'],
-             'title': 'The great fun time',
-             'year': 1950}],
-  'name': 'Only 1 book here'}]
-```
-
-Notice how we have the following features:
-
-1. Data structures are loaded, recursively, without you needing to write anything more than a couple standard Python classes.
-2. For missing properties / dictionary keys (for example, `Book.tags`), we can set a default value in our dataclass using standard Python and `serdelicacy` adds the default value to our structure
-3. For missing properties without default values, serdelicacy intelligently omits them when re-serializing the result. There is also an option to `serdelicacy.load` that allows you to convert missing values to `None` and keep the keys in the output. For all other desired default values, just use `dataclasses.field`; no need to re-invent the wheel!
-
-What about additional validation, you may ask? Again, just use dataclasses! Assume that, for some reason, no book can possibly be published before 1930, and that a book published before 1930 invalidates all data. No problem, you can do 1 of 2 things:
-
-1. Just use the standard method `__post_init__` on the relevant dataclass!
-2. Use `dataclasses.field` and put a function in the dictionary's "validate" key. The provided function should either return `True` on positive validation / `False` on non-validation, or nothing at all and instead rely on the raising of exceptions to indicate whether validation passed for failed.
-
-```python
-from dataclasses import dataclass, field
-from pprint import pprint
-from typing import List, Optional
-
-import serdelicacy
-from serdelicacy import OptionalProperty
-
-LIBRARIES = [
-    {
-        "books": [
-            {
-                "author": "Susy Smith",
-                "tags": ["boring"],
-                "title": "Hello, World!",
-                "year": 1929,
-            },
-            {"author": "Beth John", "title": "The great showman"},
-            {"author": None, "title": "My favorite pony"},
-        ],
-        "name": "Clark County Library",
-    },
-    {
-        "books": [
-            {
-                "author": "Smitty",
-                "tags": ["swell"],
-                "title": "The great fun time",
-                "year": 1950,
-            }
-        ],
-        "name": "Only 1 book here",
-    },
-]
-
-@dataclass
-class Book:
-    author: Optional[str]
-    title: str = field(metadata={"validate": str.istitle})
-    year: OptionalProperty[int]
-    tags: List[str] = field(default_factory=list)
-
-    def __post_init__(self) -> None:
-        if self.year and self.year < 1930:
-            raise ValueError(
-                f"Received illegal year {self.year}, cannot be before 1930"
-            )
-
-@dataclass
-class Library:
-    books: List[Book]
-    name: str
-
-LIBRARIES_LOADED = serdelicacy.load(LIBRARIES, List[Library])
-```
-
-Running this script should give you a clear error message containing a description of the first error encountered, along with each intermediate object in its recursive chain to help you debug further. This structure makes it incredibly easy to see not only what your error is, but where it occurred in both the data `serdelicacy.load` receives but also in the types `serdelicacy.load` uses to attempt to deserialize the received data.
-
-In serde, when working with resources external to your system, errors are inevitable. These error messages should hopefully make debugging your errors less annoying.
+See [examples folder](https://github.com/pappasam/serdelicacy/tree/master/example).
 
 ## Validation / transformation for dataclasses
 
-The following customization options are available for validation, deserialization overrides, and serialization overrides. `dataclasses` customization relies on the `metadata` argument to the `dataclasses.field` function:
+Customization override options are available for validations and transformations on both deserialization and serialization. Custom overrides are available for `dataclasses` through the `metadata` argument to the `dataclasses.field` function:
 
 ```python
 from dataclasses import dataclass, field
+
 import serdelicacy
+from serdelicacy import Override
 
 def _is_long_enough(value) -> None:
     if len(value) < 4:
@@ -272,28 +52,32 @@ VALUE = {"firstname": "richard", "lastname": "spencerson"}
 class Person:
     firstname: str = field(
         metadata={
-            "validate": _is_long_enough,
-            "transform_load": str.title,
+            "serdelicacy": Override(
+                validate=_is_long_enough,
+                transform_load=str.title,
+            )
         }
     )
     lastname: str = field(
         metadata={
-            "validate": _is_long_enough,
-            "transform_load": str.title,
-            "transform_dump": str.upper,
+            "serdelicacy": Override(
+                validate=_is_long_enough,
+                transform_load=str.title,
+                transform_dump=str.upper,
+            )
         }
     )
 
 print(serdelicacy.load(VALUE, Person))
 ```
 
-Here are the following `metadata` keys that `serdelicacy` considers, if present:
+As suggested by the Python [dataclasses.field documentation](https://docs.python.org/3/library/dataclasses.html#dataclasses.field), all `serdelicacy`-related field metadata is namespaced to 1 dictionary key: `serdelicacy`. Its value should be of type `serdelicacy.Override`, a dataclass itself whose fields are the following:
 
-- `"validate"`: if provided, this should be `Callable[[Any], NoReturn], Callable[[Any], bool]`: a function that either a) returns a boolean where False indicates failed validation or b) nothing, but raises Python exceptions on validation failure. Is executed as the final step of a value's load, after all transformations have been completed.
-- `"transform_load"`: if provided, this should be, at minimum, `Callable[[Any], Any]`. This transformation is executed before any other loading takes place.
-- `"transform_postload"`: if provided, this should be `Callable[[T], T]]`, where `T` is the type of the field. This transformation is executed after all recursive loading takes place as the final step before the value is returned for upstream processing.
+- `validate`: `Callable[[Any], NoReturn], Callable[[Any], bool]`: a function that either a) returns a boolean where False indicates failed validation or b) nothing, but raises Python exceptions on validation failure. Is executed as the final step of a value's load, after all transformations have been completed. By default, this is a function that does nothing.
+- `transform_load`: `Callable[[Any], Any]`. This transformation is executed before any other loading takes place. By default, this is an [identity function](https://en.wikipedia.org/wiki/Identity_function)
+- `transform_postload`: this should be `Callable[[T], T]]`, where `T` is the type of the field. This transformation is executed after all recursive loading takes place as the final step before the value is returned for upstream processing. By default, this is an [identity function](https://en.wikipedia.org/wiki/Identity_function)
 
-You may not need to use these tools initially, but if you have strict validation or transformation requirements on your project, you'll be extremely happy they're here!
+Finally, you may not need to use these tools initially, but if you have strict validation or transformation requirements on your project, you'll be extremely happy they're here
 
 ## FAQ
 
