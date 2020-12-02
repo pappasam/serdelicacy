@@ -66,27 +66,36 @@ with open("book.json", "r") as infile:
     raw_data = json.load(infile)
 
 
+print("Pre-deserialization:")
+pprint(raw_data)
+
 loaded = serdelicacy.load(raw_data, Book)
 
-
-print("title has been validated:", loaded.title)
-print("type of first name:", type(loaded.author.firstname))
-print("second author is missing:", loaded.second_author)
-print("Difficulty is lowercase:", loaded.difficulty)
+print("Post-deserialization:")
+print("  `title` has been validated:", repr(loaded.title))
+print("  `firstname` type:", type(loaded.author.firstname))
+print("  `second_author` is missing:", repr(loaded.second_author))
+print(
+    "  `difficulty`, when deserialized, is lowercase:", repr(loaded.difficulty)
+)
 
 unloaded1 = serdelicacy.dump(loaded)
 
-print("Notice how `difficulty` is uppercase? Thanks `dump`!")
+print("Re-serialization:")
+
+print("  Notice how `difficulty` is uppercase? Thanks `Override.dump`!")
 pprint(unloaded1)
 
-
 if not loaded.second_author:
-    print("Notice MISSING values are Falsey? I get printed because of this :)")
+    print(
+        "  Notice MISSING values are Falsey? I get printed because of this :)"
+    )
 
+print("Re-serialization, with `convert_missing_to_none` to `True`:")
 unloaded2 = serdelicacy.dump(loaded, convert_missing_to_none=True)
-print("Notice how `second_author` now exists, with value None?")
+print("  Notice how `second_author` now exists, with value None?")
 pprint(unloaded2)
 
-print("Let's break something to see an error message!")
-raw_data["title"] = "I am not title case, so I'll throw an error"
+print("Finally, let's break something to see an error message!")
+raw_data["title"] = "Intentional breakage: not title case, so will throw error"
 serdelicacy.load(raw_data, Book)
