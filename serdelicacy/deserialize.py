@@ -201,9 +201,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         TODO: figure out why type below needs to be ignored
         """
         try:
-            return self.dataclass_override.transform_postload(  # type: ignore
-                result,
-            )
+            return self.dataclass_override.transform_postload(result)
         except Exception as error:
             if not isinstance(error, DeserializeError):
                 raise DeserializeError(

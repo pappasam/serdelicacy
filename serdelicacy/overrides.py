@@ -17,30 +17,30 @@ def _id(value: T) -> T:
 
 @dataclass(frozen=True)
 class Override:
-    """Metadata user-defined overrides.
+    """Metadata user-defined overrides for dataclass serde.
 
     :attr dataclass_validate: argument provided only by upstream dataclasses.
         An internal implementation detail, but interesting nonetheless.
         Function either returns `True` on positive validation / `False` on
         non-validation, or returns nothing at all and instead relies on the
         raising of exceptions to indicate whether validation passed for failed.
-    :attr dataclass_transform_load: if deserializing a dataclass and
-        `transform_load` metadata exists in a `dataclasses.field`, its value is
-        assumed to be function whose result is evaluated on an object before
-        the object is recursively examined.
-    :attr dataclass_transform_postload: if deserializing a dataclass and
-        `transform_postload` metadata exists in a `dataclasses.field`, its
-        value is assumed to be function whose result is evaluated on an object
-        after the object has been recursively examined. When possible, the
-        `transform_load` should be preferred over `transform_postload`, but
+    :attr dataclass_transform_load: when deserializing, evaluated on an object
+        before the object is recursively examined.
+    :attr dataclass_transform_postload: when deserializing, evaluated on an
+        object after the object has been recursively examined. When possible,
+        the `transform_load` should be preferred over `transform_postload`, but
         there are situations where `transform_postload` is useful.
+    :attr dataclass_transform_dump: when serializing a dataclass, called on
+        value before it is recursively serialized
     """
 
-    validate: Union[Callable[[Any], NoReturn], Callable[[Any], bool]] = field(
-        default=_noreturn
-    )
+    validate: Union[
+        Callable[[Any], NoReturn],
+        Callable[[Any], bool],
+        Callable[[Any], None],
+    ] = field(default=_noreturn)
     transform_load: Callable[[Any], Any] = field(default=_id)
-    transform_postload: Callable[[T], T] = field(default=_id)
+    transform_postload: Callable[[Any], Any] = field(default=_id)
     transform_dump: Callable[[Any], Any] = field(default=_id)
 
 
