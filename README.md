@@ -301,7 +301,7 @@ This prints the following to the console.
 ```text
 Loaded data:
 [{'normal': 2, 'weird, key': 1},
- {'normal': 3, 'weird, key': <Undefined property>}]
+ {'normal': 3, 'weird, key': <Missing property>}]
 Re-serialized data:
 [{'normal': 2, 'weird, key': 1}, {'normal': 3}]
 ```
