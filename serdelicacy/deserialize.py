@@ -3,6 +3,7 @@
 import inspect
 import itertools
 from dataclasses import InitVar, dataclass, field, fields, is_dataclass
+from enum import Enum
 from typing import _TypedDictMeta  # type: ignore
 from typing import (
     Any,
@@ -105,6 +106,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         self.check_functions = (
             self._check_any,
             self._check_literal,
+            self._check_enum,
             self._check_primitive,
             self._check_none,
             self._check_undefined,
@@ -469,6 +471,17 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
                 self.key,
                 message_postfix=f"with value {repr(self.obj)}",
             )
+        return NO_RESULT
+
+    def _check_enum(self) -> PossibleResult[T]:
+        """Check if a result is an Enum type.
+
+        Must match the enum name exactly.
+        """
+        if isinstance(self.constructor, type) and issubclass(
+            self.constructor, Enum
+        ):
+            return self.constructor(self.obj)  # type: ignore
         return NO_RESULT
 
     def _check_any(self) -> PossibleResult[T]:

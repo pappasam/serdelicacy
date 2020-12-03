@@ -1,6 +1,7 @@
 """Dump strongly-typed containers into loosely-typed objects."""
 
 from dataclasses import asdict, fields, is_dataclass
+from enum import Enum
 from typing import Any, Mapping, Sequence
 
 from .overrides import get_override
@@ -34,6 +35,7 @@ def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
     Serialize from: - `x` -> `y`:
       - `dataclass` -> `Dict`
       - `NamedTuple` -> `Dict`
+      - `Enum` -> enum's value
       - `str` -> `str`
       - `Sequence` -> `List`
       - `Mapping` -> `Dicts`
@@ -63,6 +65,8 @@ def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
             for key, value in obj._asdict().items()
             if _filter_keep(value, convert_missing_to_none)
         }
+    if isinstance(obj, Enum):
+        return obj.value
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Sequence):
