@@ -4,6 +4,7 @@ from dataclasses import asdict, fields, is_dataclass
 from enum import Enum
 from typing import Any, Mapping, Sequence
 
+from .errors import SerializeError
 from .overrides import get_override
 from .typedefs import MISSING, NamedTupleType
 
@@ -46,43 +47,50 @@ def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
       - `Anything else` -> `itself`
     """
     # pylint: disable=too-many-return-statements
-    if is_dataclass(obj):
-        custom_dump = {
-            f.name: get_override(f.metadata.get("serdelicacy"))
-            for f in fields(obj)
-        }
-        return {
-            key: dump(__value_converted, convert_missing_to_none)
-            for key, value in asdict(obj).items()
-            if _filter_keep(
-                (__value_converted := custom_dump[key].transform_dump(value)),
-                convert_missing_to_none,
-            )
-        }
-    if isinstance(obj, NamedTupleType):
-        return {
-            key: dump(value, convert_missing_to_none)
-            for key, value in obj._asdict().items()
-            if _filter_keep(value, convert_missing_to_none)
-        }
-    if isinstance(obj, Enum):
-        return obj.value
-    if isinstance(obj, str):
+    try:
+        if is_dataclass(obj):
+            custom_dump = {
+                f.name: get_override(f.metadata.get("serdelicacy"))
+                for f in fields(obj)
+            }
+            return {
+                key: dump(__value_converted, convert_missing_to_none)
+                for key, value in asdict(obj).items()
+                if _filter_keep(
+                    (
+                        __value_converted := custom_dump[key].transform_dump(
+                            value
+                        )
+                    ),
+                    convert_missing_to_none,
+                )
+            }
+        if isinstance(obj, NamedTupleType):
+            return {
+                key: dump(value, convert_missing_to_none)
+                for key, value in obj._asdict().items()
+                if _filter_keep(value, convert_missing_to_none)
+            }
+        if isinstance(obj, Enum):
+            return obj.value
+        if isinstance(obj, str):
+            return obj
+        if isinstance(obj, Sequence):
+            return [
+                dump(value, convert_missing_to_none)
+                for value in obj
+                if _filter_keep(value, convert_missing_to_none)
+            ]
+        if isinstance(obj, Mapping):
+            return {
+                dump(key, convert_missing_to_none): dump(
+                    value, convert_missing_to_none
+                )
+                for key, value in obj.items()
+                if _filter_keep(value, convert_missing_to_none)
+            }
+        if convert_missing_to_none and (obj is MISSING):
+            return None
         return obj
-    if isinstance(obj, Sequence):
-        return [
-            dump(value, convert_missing_to_none)
-            for value in obj
-            if _filter_keep(value, convert_missing_to_none)
-        ]
-    if isinstance(obj, Mapping):
-        return {
-            dump(key, convert_missing_to_none): dump(
-                value, convert_missing_to_none
-            )
-            for key, value in obj.items()
-            if _filter_keep(value, convert_missing_to_none)
-        }
-    if convert_missing_to_none and (obj is MISSING):
-        return None
-    return obj
+    except Exception as error:
+        raise SerializeError(f"Error deserializing {repr(object)}") from error

@@ -19,19 +19,19 @@ def _id(value: T) -> T:
 class Override:
     """Metadata user-defined overrides for dataclass serde.
 
-    :attr dataclass_validate: argument provided only by upstream dataclasses.
-        An internal implementation detail, but interesting nonetheless.
-        Function either returns `True` on positive validation / `False` on
-        non-validation, or returns nothing at all and instead relies on the
-        raising of exceptions to indicate whether validation passed for failed.
-    :attr dataclass_transform_load: when deserializing, evaluated on an object
-        before the object is recursively examined.
-    :attr dataclass_transform_postload: when deserializing, evaluated on an
-        object after the object has been recursively examined. When possible,
-        the `transform_load` should be preferred over `transform_postload`, but
-        there are situations where `transform_postload` is useful.
-    :attr dataclass_transform_dump: when serializing a dataclass, called on
-        value before it is recursively serialized
+    :attr validate: a function that either returns `True` on positive
+        validation / `False` on non-validation, or returns nothing at all and
+        instead relies on the raising of exceptions to indicate whether
+        validation passed for failed.
+    :attr transform_load: a function that, when deserializing, is evaluated on
+        an object before the object is recursively examined.
+    :attr transform_postload: at function that, when deserializing, is
+        evaluated on an object after the object has been recursively examined.
+        When possible, the `transform_load` should be preferred over
+        `transform_postload`, but there are situations where
+        `transform_postload` is useful.
+    :attr transform_dump: a function that, when serializing a dataclass, is
+        called on its value before it is recursively serialized
     """
 
     validate: Union[
