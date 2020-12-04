@@ -5,7 +5,7 @@ help:  ## Print this help menu
 
 .PHONY: setup
 setup:  ## Set up the local development environment
-	poetry install -E tox
+	poetry install -E docs
 	poetry run pre-commit install
 
 .PHONY: tox
@@ -16,3 +16,17 @@ test:  ## Run the tests
 publish:  ## Build & publish the new version
 	poetry build
 	poetry publish
+
+.PHONY: build-docs
+build-docs:
+	poetry run sphinx-build -M html docs docs/_build
+
+.PHONY: serve-docs
+serve-docs: build-docs  ## Simple development server for Sphinx docs
+	@echo "Serving documentation locally."
+	@echo "Open browser with 'make open-docs'"
+	@find docs serdelicacy | entr -ps "$(MAKE) build-docs"
+
+.PHONY: open-docs
+open-docs:  ## Open Sphinx docs index in a browser
+	gio open docs/_build/html/index.html
