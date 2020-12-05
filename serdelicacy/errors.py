@@ -49,10 +49,7 @@ _K_ERROR = _tc_enc("error", 31)
 
 
 class SerializeError(SerdeError):
-    """Serialization error for `serdelicacy.dump`.
-
-    Definitely super cool
-    """
+    """Serialization error for `serdelicacy.dump`."""
 
 
 class DeserializeError(SerdeError):
@@ -62,8 +59,8 @@ class DeserializeError(SerdeError):
     deserialization errors. This Exception class provides a clear, consistent
     debugging message.
 
-    NOTE: this is part of the public insofar as you may need it to catch
-    errors. You probably won't need it to instantiate it yourself.
+    NOTE: this is part of the public interface insofar as you may need it to
+    catch errors. You probably won't need it to instantiate it yourself.
     """
 
     # pylint: disable=too-many-arguments

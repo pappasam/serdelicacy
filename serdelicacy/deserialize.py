@@ -48,16 +48,62 @@ def load(
 ) -> T:
     """Deserialize an object into its constructor.
 
-    :param obj: the 'serialized' object that we want to deserialize
-    :param constructor: the type into which we want serialize 'obj'
-    :param typesafe_constructor: makes sure that the provided top-level
-        constructor is not one of several "unsafe" types
+    Parameters:
+        obj: the serialized object that we want to deserialize
+        constructor: the type into which we want serialize `obj`
+        typesafe_constructor: special-case flag to ensure the provided
+            top-level constructor is not one of several "unsafe" types. If this
+            is `False`, no validation will be performed. Keep this `True`
+            unless you have an excellent reason to override it.
 
-    :returns: an instance of your constructor, recursively filled
+    Returns:
+        A recursively-filled, typesafe instance of `constructor`
 
-    :raises TypeError: if typesafe is True and a non-typesafe constructor is
-        provided
-    :raises errors.DeserializeError: triggered by any deserialization error
+    Raises:
+        TypeError: if typesafe is True and a non-typesafe constructor is
+            provided
+        serdelicacy.DeserializeError: triggered by any deserialization error
+
+    Example:
+        This simple library example shows `serdelicacy.load`'s recursive
+        capabilites, exposed through an extremely simple pure-Python interface.
+
+        .. code-block:: python
+
+            from typing import List
+            from dataclasses import dataclass
+            import serdelicacy
+
+            DATA = {
+                "name": "Great library",
+                "year_founded": 2018,
+                "books": [
+                    {
+                        "title": "Great Book",
+                        "author": "Smitty",
+                    },
+                    {
+                        "title": "Bad Book",
+                        "author": "Smotty",
+                    },
+                ],
+            }
+
+            @dataclass
+            class Book:
+                title: str
+                author: str
+
+            @dataclass:
+            class Library:
+                name: str
+                year_founded: int
+                books: List[Book]
+
+            LIBRARY = serdelicacy.load(DATA, Book)
+
+            assert isinstance(LIBRARY, Library)
+            assert isinstance(LIBRARY.books[0], Book)
     """
     if typesafe_constructor and any(
         check(constructor) for check in _TYPE_UNSAFE_CHECKS
@@ -74,9 +120,9 @@ def load(
 class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     """Deserialize an object into a more-strongly-typed form.
 
-    :attr depth: keeps track of recursive position. Supremely helpful for
-        error messages, since it shows the user exactly where the parsing
-        fails.
+    Attributes:
+        depth: keeps track of recursive position. Supremely helpful for error
+            messages, since it shows the user exactly where the parsing fails
 
     NOTE: throughout this class, we use typing.get_type_hints because it
     correctly handles ForwardRefs, translating string references into their

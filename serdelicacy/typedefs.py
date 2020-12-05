@@ -31,6 +31,12 @@ class Missing(enum.Enum):
 
 
 OptionalProperty = Union[Missing, T]
+OptionalProperty.__doc__ = """Type alias for a property can be MISSING
+
+`OptionalProperty` is extremely useful when differentiating between properties
+that are missing and those that are `None`.
+"""
+
 
 MISSING = Missing.token
 
@@ -49,6 +55,10 @@ def get(value: Union[Missing, T], default: T) -> T:
 
     Similar to `dict.get`, but operates on `OptionalProperty`, provides
     no default for default, and is typesafe.
+
+    Parameters:
+        value: an `OptionalProperty`
+        default: a value of the same type as `value`'s inner non-`MISSING` type
     """
     return default if value is MISSING else value  # type: ignore
 
