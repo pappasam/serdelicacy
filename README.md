@@ -8,6 +8,8 @@
 
 Serialize (`serdelicacy.dump`) and deserialize (`serdelicacy.load`) from/to strongly-typed, native Python data structures.
 
+Read the latest documentation [here](https://serdelicacy.readthedocs.io/en/latest/?badge=latest)
+
 ## Features
 
 1. Effortless deserialization of unstructured Python types into structured, type-hinted Python types (`dataclasses.dataclass`, `typing.NamedTuple`)
