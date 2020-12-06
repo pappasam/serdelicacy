@@ -1,5 +1,10 @@
 """Configuration file for the Sphinx documentation builder."""
 
+import toml
+
+with open("../pyproject.toml") as infile:
+    pyproject = toml.load(infile)
+
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
@@ -23,7 +28,7 @@ copyright = "2020, Samuel Roeca"  # pylint: disable=redefined-builtin
 author = "Samuel Roeca"
 
 # The full version, including alpha/beta/rc tags
-release = "0.17.0"
+release = pyproject["tool"]["poetry"]["version"]
 
 # -- General configuration ---------------------------------------------------
 master_doc = "index"
