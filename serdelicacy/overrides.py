@@ -17,21 +17,49 @@ def _id(value: T) -> T:
 
 @dataclass(frozen=True)
 class Override:
-    """Metadata user-defined overrides for dataclass serde.
+    """User-defined overrides for serde with `datacalsses.dataclass`
 
-    :attr dataclass_validate: argument provided only by upstream dataclasses.
-        An internal implementation detail, but interesting nonetheless.
-        Function either returns `True` on positive validation / `False` on
-        non-validation, or returns nothing at all and instead relies on the
-        raising of exceptions to indicate whether validation passed for failed.
-    :attr dataclass_transform_load: when deserializing, evaluated on an object
-        before the object is recursively examined.
-    :attr dataclass_transform_postload: when deserializing, evaluated on an
-        object after the object has been recursively examined. When possible,
-        the `transform_load` should be preferred over `transform_postload`, but
-        there are situations where `transform_postload` is useful.
-    :attr dataclass_transform_dump: when serializing a dataclass, called on
-        value before it is recursively serialized
+    Should be passed into the `metadata` argument to `dataclasses.field` via
+    the "serdelicacy" key.
+
+    Parameters:
+        validate: a function that either returns `True` on positive validation
+            / `False` on non-validation, or returns nothing at all and instead
+            relies on the raising of exceptions to indicate whether validation
+            passed for failed.
+        transform_load: a function that, when deserializing, is evaluated on an
+            object before the object is recursively examined.
+        transform_postload: a function that, when deserializing, is evaluated
+            on an object after the object has been recursively examined. When
+            possible, the `transform_load` should be preferred over
+            `transform_postload`, but there are situations where
+            `transform_postload` is useful.
+        transform_dump: a function that, when serializing a dataclass, is
+            called on its value before it is recursively serialized.
+
+    Example:
+
+        The following example shows how a function, returning `True`/`False`,
+        is passed to `serdelicacy.load` through the `metadata` parameter to
+        `dataclasses.field`.
+
+        .. code-block:: python
+
+            from dataclasses import dataclass, field
+            import serdelicacy
+            from serdelicacy import Override
+
+            BOOK_RAW = {"author": "sam"}
+
+            @dataclass
+            class Book:
+                author: str = field(
+                    metadata={"serdelicacy": Override(validate=str.istitle)}
+                )
+
+            BOOK = serdelicacy.load(BOOK_RAW, Book)
+
+        This example should raise a `serdelicacy.DeserializeError`
     """
 
     validate: Union[

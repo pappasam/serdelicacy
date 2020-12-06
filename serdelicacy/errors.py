@@ -15,7 +15,12 @@ class DepthContainer(NamedTuple):
 
 
 class SerdeError(Exception):
-    """Root error for serdelicacy."""
+    """Base error for `serdelicacy`.
+
+    Associated with both `serdelicacy.dump` and `serdelicacy.load`
+    through `serdelicacy.DeserializeError` and
+    `serdelicacy.SerializeError`.
+    """
 
 
 def _tc_enc(value: str, code: int = 32) -> str:
@@ -48,12 +53,32 @@ _K_INPUT = _tc_enc("input", 34)
 _K_ERROR = _tc_enc("error", 31)
 
 
+class SerializeError(SerdeError):
+    """Serialization error associated with `serdelicacy.dump`."""
+
+
 class DeserializeError(SerdeError):
-    """Deserialization failure.
+    """Deserialization error associated with `serdelicacy.load`.
 
     Deserializing arbitrarily-nested JSON often results in opaque
-    deserialization errors. This Exception class provides a clear,
-    consistent debugging message.
+    deserialization errors. This Exception class provides a clear, consistent
+    debugging message.
+
+    Parameters:
+        type_expected: the type `serdelicacy` expected a value to be.
+        value_received: the actual object received.
+        depth: objects containing information about the current level of
+            recursion.
+        key: if the current value is associated with a key, provide the key's
+            value. This can technically have any value.
+        message_prefix: message to prepend to the generated error message.
+        message_postfix: message to postpend to the generated error message.
+        message_override: if provided, replaces generated error message.
+
+    Note:
+        This is part of the public interface insofar as you may need it to
+        catch errors. You won't need it to instantiate or raise this exception
+        it yourself.
     """
 
     # pylint: disable=too-many-arguments
