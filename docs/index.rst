@@ -3,7 +3,7 @@
     :caption: Table of Contents
     :hidden:
 
-    modules
+    public_api
     Git Repository <https://github.com/pappasam/serdelicacy>
 
 .. mdinclude:: ../README.md
