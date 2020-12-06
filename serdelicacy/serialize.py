@@ -51,7 +51,8 @@ def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
             | `str` -> `str`
             | `Sequence` -> `List`
             | `Mapping` -> `Dict`
-            | `MISSING` -> `None` (only if `convert_missing_to_none` is True)
+            | `MISSING` -> `None` (if `convert_missing_to_none` is `True`)
+            | `MISSING` filtered out (if `convert_missing_to_none` is `False`)
             | `Anything else` -> `itself`
     """
     # pylint: disable=too-many-return-statements
@@ -101,4 +102,4 @@ def dump(obj: Any, convert_missing_to_none: bool = False) -> Any:
             return None
         return obj
     except Exception as error:
-        raise SerializeError(f"Error deserializing {repr(object)}") from error
+        raise SerializeError(f"Error serializing {repr(object)}") from error

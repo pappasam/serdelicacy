@@ -22,7 +22,7 @@ class Override:
     Should be passed into the `metadata` argument to `dataclasses.field` via
     the "serdelicacy" key.
 
-    Methods:
+    Parameters:
         validate: a function that either returns `True` on positive validation
             / `False` on non-validation, or returns nothing at all and instead
             relies on the raising of exceptions to indicate whether validation

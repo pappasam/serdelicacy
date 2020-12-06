@@ -4,6 +4,6 @@
     :hidden:
 
     modules
-    GitHub <https://github.com/pappasam/serdelicacy>
+    Git Repository <https://github.com/pappasam/serdelicacy>
 
 .. mdinclude:: ../README.md
