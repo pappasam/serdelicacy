@@ -4,6 +4,7 @@
 [![image-license](https://img.shields.io/pypi/l/serdelicacy.svg)](https://python.org/pypi/serdelicacy)
 [![image](https://img.shields.io/pypi/pyversions/serdelicacy.svg)](https://python.org/pypi/serdelicacy)
 [![image-ci](https://github.com/pappasam/serdelicacy/workflows/serdelicacy%20ci/badge.svg)](https://github.com/pappasam/serdelicacy/actions?query=workflow%3A%22serdelicacy+ci%22)
+[![readthedocs-status](https://readthedocs.org/projects/serdelicacy/badge/?version=latest)](https://serdelicacy.readthedocs.io/en/latest/?badge=latest)
 
 Serialize (`serdelicacy.dump`) and deserialize (`serdelicacy.load`) from/to strongly-typed, native Python data structures.
 
