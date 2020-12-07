@@ -8,7 +8,7 @@
 
 Serialize (`serdelicacy.dump`) and deserialize (`serdelicacy.load`) from/to strongly-typed, native Python data structures.
 
-Read the latest documentation [here](https://serdelicacy.readthedocs.io/en/latest/?badge=latest)
+Read the latest documentation [here](https://serdelicacy.readthedocs.io).
 
 ## Features
 
