@@ -17,3 +17,15 @@ from .errors import DeserializeError, SerdeError, SerializeError
 from .overrides import Override
 from .serialize import dump
 from .typedefs import OptionalProperty, get, is_missing
+
+__all__ = [
+    "load",
+    "DeserializeError",
+    "SerdeError",
+    "SerializeError",
+    "Override",
+    "dump",
+    "OptionalProperty",
+    "get",
+    "is_missing",
+]

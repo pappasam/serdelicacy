@@ -8,10 +8,6 @@ setup:  ## Set up the local development environment
 	poetry install -E docs
 	poetry run pre-commit install
 
-.PHONY: tox
-test:  ## Run the tests
-	poetry run tox
-
 .PHONY: publish
 publish:  ## Build & publish the new version
 	poetry build
@@ -30,3 +26,19 @@ serve-docs: build-docs  ## Simple development server for Sphinx docs
 .PHONY: open-docs
 open-docs:  ## Open Sphinx docs index in a browser
 	gio open docs/_build/html/index.html
+
+.PHONY: fix
+fix:  ## Fix all files in-place
+	poetry run nox -s $@
+
+.PHONY: lint
+lint:  ## Run linters on all files
+	poetry run nox -s $@
+
+.PHONY: typecheck
+typecheck:  ## Run static type checks
+	poetry run nox -s $@
+
+.PHONY: pytest
+pytest:  ## Run unit tests
+	poetry run nox -s $@

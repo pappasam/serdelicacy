@@ -3,10 +3,10 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable, NoReturn, TypeVar, Union
 
-T = TypeVar("T")  # pylint: disable=invalid-name
+T = TypeVar("T")
 
 
-def _noreturn(value: Any) -> NoReturn:  # pylint: disable=unused-argument
+def _noreturn(value: Any) -> None:
     """Simple 1 argument function that returns nothing."""
 
 

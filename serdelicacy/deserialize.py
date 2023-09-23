@@ -467,7 +467,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
     def _check_none(self) -> PossibleResult[T]:
         """Checks if a result is None."""
         if self.constructor == type(None):
-            if not self.obj is None:
+            if self.obj is not None:
                 raise DeserializeError(
                     type(None), self.obj, self.new_depth, self.key
                 )
@@ -481,7 +481,7 @@ class Deserialize(Generic[T]):  # pylint: disable=too-many-instance-attributes
         included here for completeness sake.
         """
         if self.constructor == Missing:
-            if not self.obj is MISSING:
+            if self.obj is not MISSING:
                 raise DeserializeError(
                     Missing, self.obj, self.new_depth, self.key
                 )
